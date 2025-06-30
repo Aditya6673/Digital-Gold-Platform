@@ -1,5 +1,7 @@
 import RedemptionRequest from '../models/RedemptionRequest.mjs';
 import CustomerHolding from '../models/CustomerHolding.mjs';
+import { notifyUser } from '../utils/notifyUser.mjs';
+import { logAudit } from '../utils/logAudit.mjs';
 
 export const requestRedemption = async (req, res, next) => {
   try {
@@ -65,7 +67,7 @@ export const updateRedemptionStatus = async (req, res, next) => {
       { new: true }
     );
 
-    if (!request) return res.status(404).json({ message: 'Redemption request not found' });
+    if (!request || request.isDeleted) return res.status(404).json({ message: 'Redemption request not found' });
 
     // If approved, subtract grams from holding
     if (status === 'approved') {
@@ -81,6 +83,14 @@ export const updateRedemptionStatus = async (req, res, next) => {
 
       holding.grams -= request.grams;
       await holding.save();
+      await notifyUser(request.customerId, `Your redemption request of ${request.grams} grams has been approved by the shopkeeper.`);
+      await logAudit({
+        action: status,
+        performedBy: req.user._id,
+        targetModel: 'RedemptionRequest',
+        targetId: request._id,
+        changes: { status }
+      });
     }
 
     res.status(200).json({ message: `Request ${status}`, request });

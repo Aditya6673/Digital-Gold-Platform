@@ -1,5 +1,6 @@
 import User from '../models/User.mjs';
 import Shopkeeper from '../models/shopkeeper.mjs';
+import { logAudit } from '../utils/logAudit.mjs';
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -34,6 +35,13 @@ export const softDeleteUser = async (req, res, next) => {
     const user = await User.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.status(200).json({ message: 'User soft deleted', user });
+    await logAudit({
+      action: 'delete_user',
+      performedBy: req.user._id,
+      targetModel: 'User',
+      targetId: user._id,
+      changes: { isDeleted: true }
+    });
   } catch (err) {
     next(err);
   }
@@ -45,6 +53,13 @@ export const softDeleteShopkeeper = async (req, res, next) => {
     const shop = await Shopkeeper.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
     if (!shop) return res.status(404).json({ message: 'Shopkeeper not found' });
     res.status(200).json({ message: 'Shopkeeper soft deleted', shop });
+    await logAudit({
+      action: 'delete_shopkeeper',
+      performedBy: req.user._id,
+      targetModel: 'Shopkeeper',
+      targetId: shop._id,
+      changes: { isDeleted: true }
+    });
   } catch (err) {
     next(err);
   }

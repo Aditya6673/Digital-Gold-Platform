@@ -36,7 +36,7 @@ export const setShopkeeperPricing = async (req, res, next) => {
 export const getShopkeeperPricing = async (req, res, next) => {
   try {
     const shopkeeperId = req.user.id;
-    const pricing = await ShopkeeperPricing.findOne({ shopkeeperId });
+    const pricing = await ShopkeeperPricing.findOne({ shopkeeperId ,isDeleted: false });
 
     if (!pricing) {
       return res.status(404).json({ message: 'No pricing found for shopkeeper' });

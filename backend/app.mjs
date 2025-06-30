@@ -12,8 +12,8 @@ import pricingRoutes from './routes/pricing.mjs';
 import goldRoutes from './routes/gold.mjs';
 import redemptionRoutes from './routes/redemption.mjs';
 import adminRoutes from './routes/admin.mjs';
+import notificationRoutes from './routes/notification.mjs';
 
-// Optional: import redemptionRoutes, notificationRoutes later
 
 
 dotenv.config(); // load .env
@@ -37,10 +37,11 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api/gold', goldRoutes);
 app.use('/api/redemption', redemptionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
-  res.send('💰 Digital Gold Platform API is running');
+  res.send('<h1>💰 Digital Gold Platform API is running</h1>');
 });
 
 // 404 fallback

@@ -3,6 +3,8 @@ import Transaction from '../models/Transaction.mjs';
 import CustomerHolding from '../models/CustomerHolding.mjs';
 import ShopkeeperPricing from '../models/ShopkeeperPricing.mjs';
 import GoldInventory from '../models/GoldInventory.mjs';
+import { notifyUser } from '../utils/notifyUser.mjs';
+import { logAudit } from '../utils/logAudit.mjs';
 
 export const buyGold = async (req, res, next) => {
   const session = await mongoose.startSession();
@@ -55,7 +57,15 @@ export const buyGold = async (req, res, next) => {
 
     inventory.availableGrams -= grams;
     await inventory.save({ session });
-
+    await notifyUser(req.user._id, `Purchased ${grams} grams of gold for ₹${totalAmount}.`);
+    // Log the transaction
+    await logAudit({
+      action: 'buy_gold',
+      performedBy: req.user._id,
+      targetModel: 'Transaction',
+      targetId: transaction[0]._id,
+      changes: { grams, totalAmount }
+    });
     await session.commitTransaction();
     session.endSession();
 
