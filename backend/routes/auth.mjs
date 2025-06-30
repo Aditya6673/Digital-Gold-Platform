@@ -1,11 +1,15 @@
 import express from 'express';
-import { registerUser, loginUser, getMe } from '../controllers/authController.mjs';
+import { register, login, getMe, logout, refreshToken } from '../controllers/authController.mjs';
 import { protect } from '../middlewares/auth.mjs';
+import cookieParser from 'cookie-parser';
 
 const router = express.Router();
+router.use(cookieParser());
 
-router.post('/register', registerUser);
-router.post('/login', loginUser);
+router.post('/register', register);
+router.post('/login', login);
 router.get('/me', protect, getMe);
+router.post('/logout', logout);
+router.post('/refresh', refreshToken);
 
 export default router;

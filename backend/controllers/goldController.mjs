@@ -10,17 +10,15 @@ export const setGoldPrice = async (req, res, next) => {
     }
 
     const entry = await GoldPriceFeed.create({
-      pricePerGram,
+      pricePerGram: parseFloat(pricePerGram),
       currency,
-      source,
-      updatedAt: new Date()
+      source
     });
 
     // Optional: Store in price history too
     await GoldPriceHistory.create({
       shopkeeperId: null,
-      pricePerGram,
-      updatedAt: new Date()
+      pricePerGram  : parseFloat(pricePerGram)
     });
 
     res.status(201).json({ message: 'Gold price updated', price: entry });
@@ -31,7 +29,7 @@ export const setGoldPrice = async (req, res, next) => {
 
 export const getLatestGoldPrice = async (req, res, next) => {
   try {
-    const latest = await GoldPriceFeed.findOne().sort({ updatedAt: -1 });
+    const latest = await GoldPriceFeed.findOne().sort({ updatedAt: -1 }).limit(1);
 
     if (!latest) return res.status(404).json({ message: 'No gold price found' });
 

@@ -47,7 +47,7 @@ export const deleteInventory = async (req, res, next) => {
     );
 
     if (!inventory) return res.status(404).json({ message: 'Inventory not found' });
-    res.status(200).json({ message: 'Inventory soft deleted', inventory });
+    res.status(200).json({ message: 'Inventory  deleted', inventory });
   } catch (err) {
     next(err);
   }

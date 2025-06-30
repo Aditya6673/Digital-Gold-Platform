@@ -3,7 +3,9 @@ import {
   getAllUsers,
   getAllShopkeepers,
   softDeleteUser,
-  softDeleteShopkeeper
+  softDeleteShopkeeper,
+  getDashboardStats,
+  getAuditLogs
 } from '../controllers/adminController.mjs';
 
 import { protect } from '../middlewares/auth.mjs';
@@ -15,6 +17,9 @@ router.use(protect, isAdmin);
 
 router.get('/users', getAllUsers);
 router.get('/shops', getAllShopkeepers);
+router.get('/stats', getDashboardStats);
+router.get('/audit', getAuditLogs);
+
 router.delete('/users/:id', softDeleteUser);
 router.delete('/shops/:id', softDeleteShopkeeper);
 

@@ -3,13 +3,15 @@ import Shopkeeper from '../models/shopkeeper.mjs';
 
 export const getAllUsers = async (req, res, next) => {
   try {
-    const { status } = req.query; // e.g., ?status=deleted or ?status=active
-
-    let filter = {};
+    const { status, role, page = 1, limit = 10 } = req.query;
+    const filter = {};
     if (status === 'active') filter.isDeleted = false;
     else if (status === 'deleted') filter.isDeleted = true;
-
-    const users = await User.find(filter).select('-passwordHash');
+    if (role) filter.role = role;
+    const users = await User.find(filter)
+      .select('-passwordHash')
+      .skip((page - 1) * limit)
+      .limit(parseInt(limit));
     res.status(200).json(users);
   } catch (err) {
     next(err);
@@ -43,6 +45,33 @@ export const softDeleteShopkeeper = async (req, res, next) => {
     const shop = await Shopkeeper.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
     if (!shop) return res.status(404).json({ message: 'Shopkeeper not found' });
     res.status(200).json({ message: 'Shopkeeper soft deleted', shop });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getDashboardStats = async (req, res, next) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalActiveUsers = await User.countDocuments({ isDeleted: false });
+    const totalShopkeepers = await Shopkeeper.countDocuments({ isDeleted: false });
+    const totalHoldings = await Holding.countDocuments({ isDeleted: false });
+
+    res.json({
+      totalUsers,
+      totalActiveUsers,
+      totalShopkeepers,
+      totalHoldings
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getAuditLogs = async (req, res, next) => {
+  try {
+    const logs = await AuditLog.find().sort({ timestamp: -1 }).limit(50);
+    res.json(logs);
   } catch (err) {
     next(err);
   }
