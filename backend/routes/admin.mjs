@@ -20,5 +20,7 @@ router.get('/audit', getAuditLogs());
 
 router.delete('/users/:id', softDeleteUser);
 router.patch('/kyc/verify/:userId', protect, isAdmin, verifyUserKyc);
+router.delete('/users/:id', softDeleteUser);
+
 
 export default router;

@@ -98,3 +98,16 @@ export const buyGold = async (req, res, next) => {
     next(err);
   }
 };
+
+export const getMyTransactions = async (req, res, next) => {
+  try {
+    const customerId = req.user.id;
+
+    const transactions = await Transaction.find({ customerId })
+      .sort({ transactionTime: -1 });
+
+    res.status(200).json({ success: true, transactions });
+  } catch (err) {
+    next(err);
+  }
+};
