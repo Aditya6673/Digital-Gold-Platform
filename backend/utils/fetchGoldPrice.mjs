@@ -1,21 +1,22 @@
 import axios from 'axios';
 
-export const fetchGoldPriceInINR = async () => {
-  const API_KEY = process.env.METALS_API_KEY;
-  const url = `https://metals-api.com/api/latest?access_key=${API_KEY}&base=INR&symbols=XAU`;
+export const fetchGoldPriceFromApi = async () => {
+  const API_KEY = process.env.GOLDAPI_KEY; // 🔐 store in .env
+  const url = 'https://www.goldapi.io/api/XAU/INR';
 
   try {
-    const res = await axios.get(url);
-    const rate = res.data?.rates?.XAU;
+    const response = await axios.get(url, {
+      headers: {
+        'x-access-token': API_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
 
-    if (!rate) throw new Error('XAU price not found');
+    const pricePerGram = response.data.price_gram_24k;
 
-    const inrPerOunce = 1 / rate;
-    const inrPerGram = inrPerOunce / 31.1035;
-
-    return parseFloat(inrPerGram.toFixed(2));
+    return parseFloat(pricePerGram.toFixed(2));
   } catch (err) {
-    console.error('Live gold price fetch failed:', err.message);
-    throw new Error('Gold price unavailable');
+    console.error('Failed to fetch gold price from goldapi.io', err.message);
+    throw new Error('Failed to fetch gold price from external API');
   }
 };

@@ -16,7 +16,7 @@ router.use(protect, isAdmin);
 
 router.get('/users', getAllUsers);
 router.get('/stats', getDashboardStats);
-router.get('/audit', getAuditLogs());
+router.get('/audit', getAuditLogs);
 
 router.delete('/users/:id', softDeleteUser);
 router.patch('/kyc/verify/:userId', protect, isAdmin, verifyUserKyc);
