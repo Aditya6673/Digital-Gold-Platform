@@ -13,16 +13,6 @@ Customers can **buy, hold, and redeem digital gold**, while jewellers manage pri
 - Track holdings and average price
 - Request redemption (sell or convert to physical gold)
 
-### 🛍 Shopkeepers
-- Manage gold inventory
-- Set custom pricing margin over global rate
-- View and process customer redemption requests
-
-### 🧑‍💼 Admin
-- View and manage all users and shopkeepers
-- Soft delete entities using `isDeleted` flag
-- Access to pricing and audit controls
-
 ---
 
 ## 🧱 Tech Stack

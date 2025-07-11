@@ -1,12 +1,15 @@
 import mongoose from 'mongoose';
-const goldInventorySchema = new mongoose.Schema({
-  shopkeeperId: { type: mongoose.Schema.Types.ObjectId, ref: 'Shopkeeper' },
-  availableGrams: Number,
-  marginPerGram: Number,
-  finalSellingPrice: Number,
-  isDeleted: { type: Boolean, default: false },
-  lastUpdated: { type: Date, default: Date.now }
-});
 
-const GoldInventory = mongoose.model('GoldInventory', goldInventorySchema);
-export default GoldInventory;
+const goldInventorySchema = new mongoose.Schema({
+  availableGrams: {
+    type: mongoose.Types.Decimal128,
+    required: true,
+    default: 0.0
+  },
+  isDeleted: {
+    type: Boolean,
+    default: false
+  }
+}, { timestamps: true });
+
+export default mongoose.model('GoldInventory', goldInventorySchema);

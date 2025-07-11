@@ -5,14 +5,13 @@ import cors from 'cors';
 
 // Import routes
 import authRoutes from './routes/auth.mjs';
-import inventoryRoutes from './routes/shopkeeper.mjs';
 import holdingRoutes from './routes/holding.mjs';
 import transactionRoutes from './routes/transactions.mjs';
-import pricingRoutes from './routes/pricing.mjs';
-import goldRoutes from './routes/gold.mjs';
-import redemptionRoutes from './routes/redemption.mjs';
+//import redemptionRoutes from './routes/redemption.mjs';
 import adminRoutes from './routes/admin.mjs';
 import notificationRoutes from './routes/notification.mjs';
+import inventoryRoutes from './routes/inventory.mjs';
+import userRoutes from './routes/user.mjs';
 
 
 
@@ -30,14 +29,13 @@ app.use(cors({
 
 // Mount routes
 app.use('/api/auth', authRoutes);
-app.use('/api/inventory', inventoryRoutes);
 app.use('/api/holdings', holdingRoutes);
 app.use('/api/transactions', transactionRoutes);
-app.use('/api/pricing', pricingRoutes);
-app.use('/api/gold', goldRoutes);
-app.use('/api/redemption', redemptionRoutes);
+//app.use('/api/redemption', redemptionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Health check route
 app.get('/', (req, res) => {

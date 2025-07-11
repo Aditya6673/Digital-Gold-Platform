@@ -1,11 +1,9 @@
 import express from 'express';
 import { protect } from '../middlewares/auth.mjs';
-import {
-  getMyHoldings
-} from '../controllers/holdingController.mjs';
+import { submitKyc } from '../controllers/userController.mjs';
 
 const router = express.Router();
 
-router.get('/me', protect, getMyHoldings);
+router.patch('/kyc', protect, submitKyc); // ✅ KYC submission route
 
 export default router;

@@ -3,19 +3,20 @@ import mongoose from 'mongoose';
 const kycSchema = new mongoose.Schema({
   pan: String,
   aadhar: String,
-  verified: Boolean
+  panImageUrl: String,
+  aadharImageUrl: String,
+  verified: { type: Boolean, default: false },
+  verificationDate: Date
 });
 
 const userSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
   phone: { type: String, unique: true },
+  role: { type: String,  default: 'customer' },
   passwordHash: String,
-  role: { type: String, enum: ['customer', 'shopkeeper'] },
   isDeleted: { type: Boolean, default: false },
   kyc: kycSchema,
-  referralCode: String,
-  referredBy: String,
   createdAt: { type: Date, default: Date.now },
   lastLogin: Date
 });

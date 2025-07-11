@@ -21,6 +21,16 @@ export const register = async (req, res, next) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, phone, passwordHash, role });
+    if (user.role === 'customer') {
+      const existingHolding = await Holding.findOne({ userId: user._id });
+      if (!existingHolding) {
+        await Holding.create({
+          userId: user._id,
+          totalWeight: 0,
+          isDeleted: false
+        });
+      }
+    }
 
     const token = createAccessToken(user);
     const refreshToken = createRefreshToken(user);

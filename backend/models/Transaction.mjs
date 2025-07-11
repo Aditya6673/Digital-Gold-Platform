@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 const transactionSchema = new mongoose.Schema({
   customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  shopkeeperId: { type: mongoose.Schema.Types.ObjectId, ref: 'Shopkeeper' },
   type: { type: String, enum: ['buy', 'sell'] },
   grams: Number,
   pricePerGram: Number,

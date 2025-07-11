@@ -3,16 +3,17 @@ import CustomerHolding from '../models/CustomerHolding.mjs';
 import { notifyUser } from '../utils/notifyUser.mjs';
 import { logAudit } from '../utils/logAudit.mjs';
 
+// ⛏ Create new redemption request
 export const requestRedemption = async (req, res, next) => {
   try {
     const customerId = req.user.id;
-    const { shopkeeperId, grams } = req.body;
+    const { grams } = req.body;
 
     if (!grams || grams <= 0) {
       return res.status(400).json({ message: 'Invalid redemption amount' });
     }
 
-    const holding = await CustomerHolding.findOne({ customerId, shopkeeperId, isDeleted: false });
+    const holding = await CustomerHolding.findOne({ customerId, isDeleted: false });
 
     if (!holding || holding.grams < grams) {
       return res.status(400).json({ message: 'Insufficient gold balance' });
@@ -20,7 +21,6 @@ export const requestRedemption = async (req, res, next) => {
 
     const request = await RedemptionRequest.create({
       customerId,
-      shopkeeperId,
       grams,
       status: 'pending',
       isDeleted: false
@@ -32,6 +32,7 @@ export const requestRedemption = async (req, res, next) => {
   }
 };
 
+// 📋 Get all redemption requests by this user
 export const getMyRedemptionRequests = async (req, res, next) => {
   try {
     const customerId = req.user.id;
@@ -42,16 +43,17 @@ export const getMyRedemptionRequests = async (req, res, next) => {
   }
 };
 
-export const getShopkeeperRedemptionRequests = async (req, res, next) => {
+// ✅ [Optional Admin-Only] View all redemption requests
+export const getAllRedemptionRequests = async (req, res, next) => {
   try {
-    const shopkeeperId = req.user.id;
-    const requests = await RedemptionRequest.find({ shopkeeperId, isDeleted: false });
+    const requests = await RedemptionRequest.find({ isDeleted: false });
     res.status(200).json(requests);
   } catch (err) {
     next(err);
   }
 };
 
+// ✅ Update request status: approve or reject
 export const updateRedemptionStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -67,13 +69,13 @@ export const updateRedemptionStatus = async (req, res, next) => {
       { new: true }
     );
 
-    if (!request || request.isDeleted) return res.status(404).json({ message: 'Redemption request not found' });
+    if (!request || request.isDeleted) {
+      return res.status(404).json({ message: 'Redemption request not found' });
+    }
 
-    // If approved, subtract grams from holding
     if (status === 'approved') {
       const holding = await CustomerHolding.findOne({
         customerId: request.customerId,
-        shopkeeperId: request.shopkeeperId,
         isDeleted: false
       });
 
@@ -83,9 +85,10 @@ export const updateRedemptionStatus = async (req, res, next) => {
 
       holding.grams -= request.grams;
       await holding.save();
-      await notifyUser(request.customerId, `Your redemption request of ${request.grams} grams has been approved by the shopkeeper.`);
+
+      await notifyUser(request.customerId, `Your redemption request of ${request.grams} grams has been approved.`);
       await logAudit({
-        action: status,
+        action: 'approve_redemption',
         performedBy: req.user._id,
         targetModel: 'RedemptionRequest',
         targetId: request._id,
