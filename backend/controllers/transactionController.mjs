@@ -5,7 +5,7 @@ import Transaction from '../models/Transaction.mjs';
 import CustomerHolding from '../models/CustomerHolding.mjs';
 import { notifyUser } from '../utils/notifyUser.mjs';
 import { logAudit } from '../utils/logAudit.mjs';
-import { fetchGoldPriceInINR } from '../utils/fetchGoldPrice.mjs';
+import {fetchGoldPriceInINR} from '../utils/fetchGoldPrice.mjs';
 
 export const buyGold = async (req, res, next) => {
   const session = await mongoose.startSession();

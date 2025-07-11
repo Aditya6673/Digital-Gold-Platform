@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-export const fetchGoldPriceFromApi = async () => {
-  const API_KEY = process.env.GOLDAPI_KEY; // 🔐 store in .env
+export const fetchGoldPriceInINR = async () => {
+  const API_KEY = process.env.GOLDAPI_KEY;
   const url = 'https://www.goldapi.io/api/XAU/INR';
 
   try {
