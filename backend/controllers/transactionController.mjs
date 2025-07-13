@@ -99,6 +99,92 @@ export const buyGold = async (req, res, next) => {
   }
 };
 
+export const sellGold = async (req, res, next) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const customerId = req.user.id;
+    const { grams } = req.body;
+
+    // ✅ Validate grams
+    if (!grams || grams <= 0) {
+      throw new Error('Invalid gold quantity');
+    }
+
+    // ✅ Check KYC
+    const user = await User.findById(customerId).session(session);
+    if (!user || !user.kyc?.verified) {
+      throw new Error('KYC not verified. Cannot proceed with sale.');
+    }
+
+    // ✅ Check holding
+    let holding = await CustomerHolding.findOne({
+      customerId,
+      isDeleted: false
+    }).session(session);
+
+    if (!holding || holding.totalGrams < grams) {
+      throw new Error('Insufficient gold balance to sell');
+    }
+
+    // ✅ Get live gold price
+    const pricePerGram = await fetchGoldPriceInINR();
+    const totalAmount = parseFloat((pricePerGram * grams).toFixed(2));
+
+    // ✅ Create transaction
+    const [transaction] = await Transaction.create([
+      {
+        customerId,
+        type: 'sell',
+        grams,
+        pricePerGram,
+        totalAmount,
+        status: 'success',
+        createdAt: new Date()
+      }
+    ], { session });
+
+    // ✅ Update holding
+    holding.totalGrams = parseFloat((holding.totalGrams - grams).toFixed(4));
+    // Optionally update totalInvested and averagePricePerGram if needed
+    holding.lastTransactionAt = new Date();
+    await holding.save({ session });
+
+    // ✅ Update inventory
+    let inventory = await GoldInventory.findOne({ isDeleted: false }).session(session);
+    if (!inventory) {
+      inventory = await GoldInventory.create([{ availableGrams: grams }], { session });
+    } else {
+      inventory.availableGrams += grams;
+      await inventory.save({ session });
+    }
+
+    // ✅ Notify user and audit log
+    await notifyUser(customerId, `You sold ${grams} grams of gold for ₹${totalAmount}.`);
+    await logAudit({
+      action: 'sell_gold',
+      performedBy: customerId,
+      targetModel: 'Transaction',
+      targetId: transaction._id,
+      changes: { grams, totalAmount }
+    });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(201).json({
+      success: true,
+      message: 'Gold sale successful',
+      transaction
+    });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    next(err);
+  }
+};
+
 export const getMyTransactions = async (req, res, next) => {
   try {
     const customerId = req.user.id;

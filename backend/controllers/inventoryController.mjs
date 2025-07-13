@@ -1,4 +1,5 @@
 import GoldInventory from '../models/GoldInventory.mjs';
+import { logAudit } from '../utils/logAudit.mjs';
 
 // ✅ Get current inventory
 export const getInventory = async (req, res, next) => {
@@ -6,69 +7,74 @@ export const getInventory = async (req, res, next) => {
     const inventory = await GoldInventory.findOne({ isDeleted: false });
     if (!inventory) return res.status(404).json({ message: 'No inventory found' });
 
-    res.status(200).json(inventory);
+    // Ensure availableGrams is a number
+    const availableGrams = parseFloat(inventory.availableGrams.toString());
+    res.status(200).json({ ...inventory.toObject(), availableGrams });
   } catch (err) {
     next(err);
   }
 };
 
-// ✅ Admin: Add grams to inventory
-export const addGoldToInventory = async (req, res, next) => {
+// ✅ Admin: Update inventory (increase or decrease)
+export const updateInventory = async (req, res, next) => {
   try {
-    const { grams } = parseFloat(req.body.grams);
+    const { grams, operation } = req.body;
 
     if (!grams || grams <= 0) {
       return res.status(400).json({ message: 'Invalid quantity' });
+    }
+
+    if (!['add', 'remove'].includes(operation)) {
+      return res.status(400).json({ message: 'Invalid operation. Use "add" or "remove"' });
     }
 
     let inventory = await GoldInventory.findOne({ isDeleted: false });
 
     if (!inventory) {
+      if (operation === 'remove') {
+        return res.status(400).json({ message: 'No inventory exists to remove from' });
+      }
       inventory = await GoldInventory.create({ availableGrams: grams });
     } else {
-      inventory.availableGrams += grams;
+      if (operation === 'remove' && inventory.availableGrams < grams) {
+        return res.status(400).json({ message: 'Not enough gold in inventory' });
+      }
+
+      if (operation === 'add') {
+        inventory.availableGrams += grams;
+      } else {
+        inventory.availableGrams -= grams;
+      }
       await inventory.save();
     }
+
+    const action = operation === 'add' ? 'add_inventory' : 'remove_inventory';
+    const changeKey = operation === 'add' ? 'addedGrams' : 'removedGrams';
+    
     await logAudit({
-        action: 'add_inventory',
-        performedBy: req.user._id,
-        targetModel: 'GoldInventory',
-        targetId: inventory._id,
-        changes: { addedGrams: grams, newAvailableGrams: parseFloat(inventory.availableGrams.toString()) }
+      action,
+      performedBy: req.user._id,
+      targetModel: 'GoldInventory',
+      targetId: inventory._id,
+      changes: { 
+        [changeKey]: grams, 
+        newAvailableGrams: parseFloat(inventory.availableGrams.toString()) 
+      }
     });
 
-    res.status(200).json({ message: `${grams} grams added to inventory`, inventory });
-  } catch (err) {
-    next(err);
-  }
-};
+    const message = operation === 'add' 
+      ? `${grams} grams added to inventory` 
+      : `${grams} grams removed from inventory`;
 
-// ✅ Admin: Remove grams (e.g. for manual redemption)
-export const removeGoldFromInventory = async (req, res, next) => {
-  try {
-    const { grams } = parseFloat(req.body.grams);
-
-    if (!grams || grams <= 0) {
-      return res.status(400).json({ message: 'Invalid quantity' });
-    }
-
-    const inventory = await GoldInventory.findOne({ isDeleted: false });
-
-    if (!inventory || inventory.availableGrams < grams) {
-      return res.status(400).json({ message: 'Not enough gold in inventory' });
-    }
-
-    inventory.availableGrams -= grams;
-    await inventory.save();
-    await logAudit({
-        action: 'remove_inventory',
-        performedBy: req.user._id,
-        targetModel: 'GoldInventory',
-        targetId: inventory._id,
-        changes: { removedGrams: grams, newAvailableGrams: parseFloat(inventory.availableGrams.toString()) }
+    // Ensure availableGrams is a number in the response
+    const availableGrams = parseFloat(inventory.availableGrams.toString());
+    res.status(200).json({ 
+      message, 
+      inventory: { ...inventory.toObject(), availableGrams },
+      operation,
+      gramsChanged: grams,
+      newTotal: availableGrams
     });
-
-    res.status(200).json({ message: `${grams} grams removed from inventory`, inventory });
   } catch (err) {
     next(err);
   }

@@ -1,8 +1,7 @@
 import express from 'express';
 import {
   getInventory,
-  addGoldToInventory,
-  removeGoldFromInventory
+  updateInventory
 } from '../controllers/inventoryController.mjs';
 import { protect } from '../middlewares/auth.mjs';
 import { isAdmin } from '../middlewares/isAdmin.mjs';
@@ -10,7 +9,6 @@ import { isAdmin } from '../middlewares/isAdmin.mjs';
 const router = express.Router();
 
 router.get('/', protect, isAdmin, getInventory);
-router.post('/add', protect, isAdmin, addGoldToInventory);
-router.post('/remove', protect, isAdmin, removeGoldFromInventory);
+router.post('/update', protect, isAdmin, updateInventory);
 
 export default router;

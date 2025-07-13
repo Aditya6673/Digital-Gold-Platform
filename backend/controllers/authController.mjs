@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.mjs';
+import CustomerHolding from '../models/CustomerHolding.mjs';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -14,22 +15,31 @@ const createRefreshToken = (user) => {
 
 export const register = async (req, res, next) => {
   try {
-    const { name, email, phone, password, role } = req.body;
-    if (role.toLowerCase() === 'admin') return res.status(403).json({ message: 'Cannot register as admin' });
-    const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ message: 'User already exists' });
+    const { name, email, phone, password } = req.body;
+    
+    // Check for existing user by email
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) return res.status(400).json({ message: 'User with this email already exists' });
+
+    // Check for existing user by phone (only if phone is provided)
+    if (phone) {
+      const existingPhone = await User.findOne({ phone });
+      if (existingPhone) return res.status(400).json({ message: 'User with this phone number already exists' });
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, phone, passwordHash, role });
-    if (user.role === 'customer') {
-      const existingHolding = await Holding.findOne({ userId: user._id });
-      if (!existingHolding) {
-        await Holding.create({
-          userId: user._id,
-          totalWeight: 0,
-          isDeleted: false
-        });
-      }
+    const user = await User.create({ name, email, phone, passwordHash });
+    
+    // Create customer holding
+    const existingHolding = await CustomerHolding.findOne({ customerId: user._id });
+    if (!existingHolding) {
+      await CustomerHolding.create({
+        customerId: user._id,
+        totalGrams: 0,
+        averagePricePerGram: 0,
+        totalInvested: 0,
+        isDeleted: false
+      });
     }
 
     const token = createAccessToken(user);
@@ -40,8 +50,24 @@ export const register = async (req, res, next) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000
-    }).json({ token });
+    }).json({ 
+      token,
+      user: { 
+        name: user.name, 
+        email: user.email, 
+        role: user.role,
+        phone: user.phone 
+      } 
+    });
   } catch (err) {
+    console.error('Registration error:', err);
+    if (err.code === 11000) {
+      // MongoDB duplicate key error
+      const field = Object.keys(err.keyPattern)[0];
+      return res.status(400).json({ 
+        message: `${field.charAt(0).toUpperCase() + field.slice(1)} already exists` 
+      });
+    }
     next(err);
   }
 };

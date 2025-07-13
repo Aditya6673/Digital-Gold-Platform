@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import connectDB from './config/db.mjs';
 import cors from 'cors';
+import { errorHandler } from './middlewares/errorHandler.mjs';
 
 // Import routes
 import authRoutes from './routes/auth.mjs';
@@ -12,6 +13,7 @@ import adminRoutes from './routes/admin.mjs';
 import notificationRoutes from './routes/notification.mjs';
 import inventoryRoutes from './routes/inventory.mjs';
 import userRoutes from './routes/user.mjs';
+import goldRoutes from './routes/gold.mjs';
 
 
 
@@ -36,6 +38,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/inventory', inventoryRoutes);
+app.use('/api/gold', goldRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
@@ -48,9 +51,6 @@ app.use((req, res) => {
 });
 
 // Error handler
-app.use((err, req, res, next) => {
-  console.error(err.stack || err.message);
-  res.status(500).json({ message: 'Internal Server Error', error: err.message });
-});
+app.use(errorHandler);
 
 export default app;

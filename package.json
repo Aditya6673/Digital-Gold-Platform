@@ -1,5 +1,7 @@
 {
   "dependencies": {
+    "@fontsource/playfair-display": "^5.2.6",
+    "@fontsource/pt-sans": "^5.2.6",
     "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
@@ -8,7 +10,9 @@
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.1",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.16.0"
+    "mongoose": "^8.16.0",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^7.6.3"
   },
   "name": "digital-gold-platform",
   "version": "1.0.0",

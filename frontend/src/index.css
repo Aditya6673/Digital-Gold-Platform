@@ -1,0 +1,58 @@
+@import '@fontsource/playfair-display';
+@import '@fontsource/pt-sans';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'PT Sans', sans-serif;
+    background-color: #F5F5DC;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Playfair Display', serif;
+  }
+  
+  /* Ensure INR symbol displays correctly */
+  .inr-symbol {
+    font-family: 'PT Sans', 'Arial Unicode MS', 'Segoe UI', 'Noto Sans', 'DejaVu Sans', sans-serif;
+  }
+  
+  /* Alternative approach using content property */
+  .inr-symbol-alt::before {
+    content: '₹';
+    font-family: 'Arial Unicode MS', 'Segoe UI', sans-serif;
+  }
+}
+
+@layer components {
+  .gold-gradient {
+    background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+  }
+  
+  .gold-card {
+    background: linear-gradient(145deg, #ffffff 0%, #F5F5DC 100%);
+    border: 1px solid #FFD700;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.1);
+  }
+  
+  .gold-button {
+    background: linear-gradient(135deg, #FFD700 0%, #CD7F32 100%);
+    transition: all 0.3s ease;
+  }
+  
+  .gold-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.3);
+  }
+  
+  .price-change-up {
+    animation: priceUp 0.5s ease-out;
+  }
+  
+  .price-change-down {
+    animation: priceDown 0.5s ease-out;
+  }
+} 

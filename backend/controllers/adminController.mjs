@@ -1,4 +1,5 @@
 import User from '../models/User.mjs';
+import CustomerHolding from '../models/CustomerHolding.mjs';
 import { logAudit } from '../utils/logAudit.mjs';
 import { notifyUser } from '../utils/notifyUser.mjs';
 
@@ -8,7 +9,11 @@ export const getAllUsers = async (req, res, next) => {
     const filter = {};
     if (status === 'active') filter.isDeleted = false;
     else if (status === 'deleted') filter.isDeleted = true;
-    if (role) filter.role = role;
+    if (role) {
+      filter.role = role;
+    } else {
+      filter.role = { $ne: 'admin' };
+    }
     const users = await User.find(filter)
       .select('-passwordHash')
       .skip((page - 1) * limit)
@@ -42,12 +47,23 @@ export const getDashboardStats = async (req, res, next) => {
   try {
     const totalUsers = await User.countDocuments();
     const totalActiveUsers = await User.countDocuments({ isDeleted: false });
-    const totalHoldings = await Holding.countDocuments({ isDeleted: false });
+    const totalHoldings = await CustomerHolding.countDocuments({ isDeleted: false });
+    
+    // Get pending KYC count
+    const pendingKyc = await User.countDocuments({ 
+      'kyc.verified': { $ne: true },
+      isDeleted: false 
+    });
 
     res.json({
-      totalUsers,
-      totalActiveUsers,
-      totalHoldings
+      totalUsers: totalUsers || 0,
+      totalActiveUsers: totalActiveUsers || 0,
+      totalHoldings: totalHoldings || 0,
+      totalGoldSold: 0, // Placeholder - implement when you have transaction data
+      totalGoldBought: 0, // Placeholder - implement when you have transaction data
+      totalTransactions: 0, // Placeholder - implement when you have transaction data
+      pendingKyc: pendingKyc || 0,
+      activeUsers: totalActiveUsers || 0
     });
   } catch (err) {
     next(err);
