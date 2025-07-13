@@ -17,12 +17,12 @@ const AdminPriceManager = () => {
 
   const fetchPriceData = async () => {
     try {
-      const response = await api.get('/gold/price')
+      const response = await api.get('/api/gold/price')
       setCurrentPrice(response.data.price || 0)
       setLastUpdated(response.data.lastUpdated || null)
       
       // Fetch price history
-      const historyResponse = await api.get('/gold/price-history')
+      const historyResponse = await api.get('/api/gold/price-history')
       setPriceHistory(historyResponse.data.history || [])
     } catch (error) {
       console.error('Error fetching price data:', error)
@@ -34,7 +34,7 @@ const AdminPriceManager = () => {
   const updatePriceFromAPI = async () => {
     setUpdating(true)
     try {
-      const response = await api.post('/gold/update-from-api')
+      const response = await api.post('/api/gold/update-from-api')
       setCurrentPrice(response.data.price)
       setLastUpdated(response.data.lastUpdated)
       fetchPriceData() // Refresh all data
@@ -50,7 +50,7 @@ const AdminPriceManager = () => {
     
     setUpdating(true)
     try {
-      const response = await api.post('/gold/update-price', { price: parseFloat(manualPrice) })
+      const response = await api.post('/api/gold/update-price', { price: parseFloat(manualPrice) })
       setCurrentPrice(response.data.price)
       setLastUpdated(response.data.lastUpdated)
       setManualPrice('')

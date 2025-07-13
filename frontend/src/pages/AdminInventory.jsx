@@ -19,7 +19,7 @@ const AdminInventory = () => {
   const fetchInventory = async () => {
     try {
       setLoading(true)
-      const response = await api.get('/inventory')
+      const response = await api.get('/api/inventory')
       setCurrentInventory(parseFloat(response.data.availableGrams) || 0)
     } catch (error) {
       console.error('Error fetching inventory:', error)
@@ -40,7 +40,7 @@ const AdminInventory = () => {
     setMessage('')
 
     try {
-      const response = await api.post('/inventory/update', {
+      const response = await api.post('/api/inventory/update', {
         grams: parseFloat(grams),
         operation: operation
       })

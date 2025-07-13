@@ -21,7 +21,7 @@ const AdminKYC = () => {
 
   const fetchKYCApplications = async () => {
     try {
-      const response = await api.get('/admin/kyc')
+      const response = await api.get('/api/admin/kyc')
       setKycApplications(response.data.applications || [])
     } catch (error) {
       console.error('Error fetching KYC applications:', error)
@@ -40,7 +40,7 @@ const AdminKYC = () => {
 
   const handleKycAction = async (applicationId, action) => {
     try {
-      const response = await api.put(`/admin/kyc/${applicationId}/${action}`)
+      const response = await api.put(`/api/admin/kyc/${applicationId}/${action}`)
       // Refresh the applications list
       fetchKYCApplications()
       setShowModal(false)

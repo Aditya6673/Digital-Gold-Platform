@@ -27,16 +27,16 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     try {
       // Fetch gold price
-      const priceResponse = await api.get('/gold/price')
+      const priceResponse = await api.get('/api/gold/price')
       setGoldPrice(priceResponse.data.price || 2000)
 
       // Fetch portfolio data
-      const portfolioResponse = await api.get('/holdings')
+              const portfolioResponse = await api.get('/api/holdings')
       setHoldings(portfolioResponse.data.holdings || [])
       setPortfolioValue(portfolioResponse.data.totalValue || 0)
 
       // Fetch recent transactions
-      const transactionsResponse = await api.get('/transactions/recent')
+              const transactionsResponse = await api.get('/api/transactions/recent')
       setRecentTransactions(transactionsResponse.data.transactions || [])
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
@@ -66,7 +66,7 @@ const Dashboard = () => {
       payload.inr = parseFloat(amount)
     }
     try {
-      const response = await api.post(endpoint.replace('/api', ''), payload)
+              const response = await api.post(endpoint, payload)
       showSuccess(response.data.message || `${modalType === 'buy' ? 'Buy' : 'Sell'} successful!`)
       fetchDashboardData()
       handleCloseModal()

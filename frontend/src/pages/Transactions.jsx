@@ -21,7 +21,7 @@ const Transactions = () => {
 
   const fetchTransactions = async () => {
     try {
-      const response = await api.get('/transactions')
+      const response = await api.get('/api/transactions')
       setTransactions(response.data.transactions || [])
     } catch (error) {
       console.error('Error fetching transactions:', error)

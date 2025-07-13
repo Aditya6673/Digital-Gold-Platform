@@ -22,7 +22,7 @@ const AdminDashboard = () => {
 
   const fetchAdminStats = async () => {
     try {
-      const response = await api.get('/admin/stats')
+      const response = await api.get('/api/admin/stats')
       setStats(response.data)
     } catch (error) {
       console.error('Error fetching admin stats:', error)

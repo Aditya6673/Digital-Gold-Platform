@@ -23,7 +23,7 @@ const AdminUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/admin/users')
+      const response = await api.get('/api/admin/users')
       // Fallback: filter out admins if any slip through
       const nonAdminUsers = Array.isArray(response.data) ? response.data.filter(u => u.role !== 'admin') : (response.data.users || []).filter(u => u.role !== 'admin')
       setUsers(nonAdminUsers)

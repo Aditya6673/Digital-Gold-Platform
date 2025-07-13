@@ -36,7 +36,7 @@ const Profile = () => {
 
   const fetchUserHoldings = async () => {
     try {
-      const response = await api.get('/holdings')
+      const response = await api.get('/api/holdings')
       setHoldings(response.data.holdings || [])
       setTotalValue(response.data.totalValue || 0)
     } catch (error) {
@@ -56,7 +56,7 @@ const Profile = () => {
     setLoading(true)
 
     try {
-      const response = await api.put('/user/profile', formData)
+      const response = await api.put('/api/users/profile', formData)
       showSuccess('Profile updated successfully!')
       setIsEditing(false)
     } catch (error) {
@@ -112,7 +112,7 @@ const Profile = () => {
         aadharImageUrl = await uploadImage(kycForm.aadharImage)
       }
       // Submit KYC data
-      const response = await api.patch('/user/kyc', {
+      const response = await api.patch('/api/users/kyc', {
         pan: kycForm.pan,
         aadhar: kycForm.aadhar,
         panImageUrl,
