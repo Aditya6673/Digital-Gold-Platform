@@ -31,12 +31,12 @@ const Dashboard = () => {
       setGoldPrice(priceResponse.data.price || 2000)
 
       // Fetch portfolio data
-              const portfolioResponse = await api.get('/api/holdings')
+              const portfolioResponse = await api.get('/api/holdings/me')
       setHoldings(portfolioResponse.data.holdings || [])
       setPortfolioValue(portfolioResponse.data.totalValue || 0)
 
       // Fetch recent transactions
-              const transactionsResponse = await api.get('/api/transactions/recent')
+              const transactionsResponse = await api.get('/api/transactions/me')
       setRecentTransactions(transactionsResponse.data.transactions || [])
     } catch (error) {
       console.error('Error fetching dashboard data:', error)

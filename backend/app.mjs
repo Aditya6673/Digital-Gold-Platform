@@ -25,7 +25,7 @@ const app = express();
 app.use(express.json()); // parse JSON bodies
 app.use(cors({
   origin: process.env.CORS_ORIGIN, // allow all origins or specify your frontend URL
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // allowed HTTP methods
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // allowed HTTP methods
   credentials: true,
 })); // enable CORS for all routes
 

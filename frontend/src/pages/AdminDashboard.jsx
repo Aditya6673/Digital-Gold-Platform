@@ -3,9 +3,11 @@ import { motion } from 'framer-motion'
 import { FaUsers, FaCoins, FaChartLine, FaShieldAlt, FaArrowUp, FaArrowDown, FaWarehouse } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
 import api from '../lib/axios'
+import { useNavigate } from 'react-router-dom'
 
 const AdminDashboard = () => {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalGoldSold: 0,
@@ -168,19 +170,31 @@ const AdminDashboard = () => {
             Quick Actions
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform">
+            <button
+              className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform"
+              onClick={() => navigate('/admin/kyc')}
+            >
               <FaShieldAlt className="text-2xl mx-auto mb-2" />
               <span className="font-semibold">Review KYC</span>
             </button>
-            <button className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform">
+            <button
+              className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform"
+              onClick={() => navigate('/admin/users')}
+            >
               <FaUsers className="text-2xl mx-auto mb-2" />
               <span className="font-semibold">Manage Users</span>
             </button>
-            <button className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform">
+            <button
+              className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform"
+              onClick={() => navigate('/admin/price')}
+            >
               <FaCoins className="text-2xl mx-auto mb-2" />
               <span className="font-semibold">Update Prices</span>
             </button>
-            <button className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform">
+            <button
+              className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform"
+              onClick={() => navigate('/admin/inventory')}
+            >
               <FaWarehouse className="text-2xl mx-auto mb-2" />
               <span className="font-semibold">Manage Inventory</span>
             </button>

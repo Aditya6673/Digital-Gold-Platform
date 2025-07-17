@@ -4,6 +4,7 @@ import { FaUser, FaEnvelope, FaPhone, FaShieldAlt, FaEdit, FaSave, FaTimes } fro
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { formatINR } from '../utils/currency.jsx'
+import api from '../lib/axios'
 
 const Profile = () => {
   const { user } = useAuth()
@@ -36,7 +37,7 @@ const Profile = () => {
 
   const fetchUserHoldings = async () => {
     try {
-      const response = await api.get('/api/holdings')
+      const response = await api.get('/api/holdings/me')
       setHoldings(response.data.holdings || [])
       setTotalValue(response.data.totalValue || 0)
     } catch (error) {
@@ -80,7 +81,7 @@ const Profile = () => {
     // Example: Imgur anonymous upload
     const formData = new FormData()
     formData.append('image', file)
-    const response = await fetch(`https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`, {
+    const response = await fetch(`https://api.imgbb.com/1/upload?expiration=600&key=${import.meta.env.VITE_IMGBB_API_KEY}`, {
       method: 'POST',
       body: formData
     })

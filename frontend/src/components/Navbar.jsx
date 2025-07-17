@@ -41,18 +41,6 @@ const Navbar = () => {
                     <Link to="/admin" className="text-gray-700 hover:text-gold-primary transition-colors">
                       Admin Dashboard
                     </Link>
-                    <Link to="/admin/users" className="text-gray-700 hover:text-gold-primary transition-colors">
-                      Manage Users
-                    </Link>
-                    <Link to="/admin/kyc" className="text-gray-700 hover:text-gold-primary transition-colors">
-                      KYC Approvals
-                    </Link>
-                    <Link to="/admin/price" className="text-gray-700 hover:text-gold-primary transition-colors">
-                      Price Manager
-                    </Link>
-                    <Link to="/admin/inventory" className="text-gray-700 hover:text-gold-primary transition-colors">
-                      Inventory Manager
-                    </Link>
                     <div className="flex items-center space-x-4">
                       <span className="text-gray-700">Admin: {user.name}</span>
                       <button
@@ -140,34 +128,6 @@ const Navbar = () => {
                       onClick={() => setIsOpen(false)}
                     >
                       Admin Dashboard
-                    </Link>
-                    <Link
-                      to="/admin/users"
-                      className="block px-3 py-2 text-gray-700 hover:text-gold-primary"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Manage Users
-                    </Link>
-                    <Link
-                      to="/admin/kyc"
-                      className="block px-3 py-2 text-gray-700 hover:text-gold-primary"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      KYC Approvals
-                    </Link>
-                    <Link
-                      to="/admin/price"
-                      className="block px-3 py-2 text-gray-700 hover:text-gold-primary"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Price Manager
-                    </Link>
-                    <Link
-                      to="/admin/inventory"
-                      className="block px-3 py-2 text-gray-700 hover:text-gold-primary"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Inventory Manager
                     </Link>
                     <div className="px-3 py-2 border-t border-gray-200 mt-2">
                       <span className="text-gray-700">Admin: {user.name}</span>

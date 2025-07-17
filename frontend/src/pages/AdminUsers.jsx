@@ -25,8 +25,12 @@ const AdminUsers = () => {
     try {
       const response = await api.get('/api/admin/users')
       // Fallback: filter out admins if any slip through
-      const nonAdminUsers = Array.isArray(response.data) ? response.data.filter(u => u.role !== 'admin') : (response.data.users || []).filter(u => u.role !== 'admin')
-      setUsers(nonAdminUsers)
+      const nonAdminUsers = Array.isArray(response.data)
+        ? response.data.filter(u => u.role !== 'admin')
+        : (response.data.users || []).filter(u => u.role !== 'admin')
+      // Map isDeleted to deleted for frontend filtering
+      const mappedUsers = nonAdminUsers.map(u => ({ ...u, deleted: u.isDeleted }))
+      setUsers(mappedUsers)
     } catch (error) {
       console.error('Error fetching users:', error)
     } finally {
@@ -44,8 +48,11 @@ const AdminUsers = () => {
 
     // Apply deleted status filter
     if (filters.deleted !== 'all') {
-      const isDeleted = filters.deleted === 'deleted'
-      filtered = filtered.filter(user => user.deleted === isDeleted)
+      if (filters.deleted === 'deleted') {
+        filtered = filtered.filter(user => user.deleted === true)
+      } else if (filters.deleted === 'active') {
+        filtered = filtered.filter(user => user.deleted === false)
+      }
     }
 
     // Apply search filter
