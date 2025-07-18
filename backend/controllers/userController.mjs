@@ -21,12 +21,13 @@ export const submitKyc = async (req, res, next) => {
     user.kyc.panImageUrl = panImageUrl;
     user.kyc.aadharImageUrl = aadharImageUrl;
     user.kyc.verified = false;
-    user.kyc.verifiedAt = null;
+    user.kyc.verificationDate = null;
 
     await user.save();
 
     res.status(200).json({ message: 'KYC submitted successfully. Awaiting verification.' });
   } catch (err) {
+    console.error('KYC submission error:', err);
     next(err);
   }
 };
