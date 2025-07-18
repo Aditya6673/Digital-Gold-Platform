@@ -3,14 +3,17 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FaCoins, FaBars, FaTimes, FaUser, FaSignOutAlt } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { showSuccess } = useToast()
 
   const handleLogout = () => {
     logout()
+    showSuccess('Logged out successfully.')
     navigate('/')
     setIsOpen(false)
   }

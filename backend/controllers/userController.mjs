@@ -1,4 +1,8 @@
 import User from '../models/User.mjs';
+import cloudinary from '../config/cloudinary.mjs';
+import multer from 'multer';
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 export const submitKyc = async (req, res, next) => {
   try {
@@ -22,6 +26,24 @@ export const submitKyc = async (req, res, next) => {
     await user.save();
 
     res.status(200).json({ message: 'KYC submitted successfully. Awaiting verification.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const uploadKycImage = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    const result = await cloudinary.uploader.upload_stream({
+      folder: 'kyc',
+      resource_type: 'image',
+    }, (error, result) => {
+      if (error) return next(error);
+      res.json({ url: result.secure_url });
+    });
+    result.end(req.file.buffer);
   } catch (err) {
     next(err);
   }
