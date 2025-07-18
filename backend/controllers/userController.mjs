@@ -36,14 +36,17 @@ export const uploadKycImage = async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
-    const result = await cloudinary.uploader.upload_stream({
-      folder: 'kyc',
-      resource_type: 'image',
-    }, (error, result) => {
-      if (error) return next(error);
-      res.json({ url: result.secure_url });
-    });
-    result.end(req.file.buffer);
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'kyc',
+        resource_type: 'image',
+      },
+      (error, result) => {
+        if (error) return next(error);
+        res.json({ url: result.secure_url });
+      }
+    );
+    stream.end(req.file.buffer);
   } catch (err) {
     next(err);
   }
