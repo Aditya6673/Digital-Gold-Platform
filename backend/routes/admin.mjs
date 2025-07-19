@@ -4,7 +4,9 @@ import {
   softDeleteUser,
   getDashboardStats,
   getAuditLogs,
-  verifyUserKyc
+  verifyUserKyc,
+  rejectUserKyc,
+  getKycApplications
 } from '../controllers/adminController.mjs';
 
 import { protect } from '../middlewares/auth.mjs';
@@ -17,9 +19,11 @@ router.use(protect, isAdmin);
 router.get('/users', getAllUsers);
 router.get('/stats', getDashboardStats);
 router.get('/audit', getAuditLogs);
+router.get('/kyc', getKycApplications);
 
 router.delete('/users/:id', softDeleteUser);
 router.patch('/kyc/verify/:userId', protect, isAdmin, verifyUserKyc);
+router.patch('/kyc/reject/:userId', protect, isAdmin, rejectUserKyc);
 router.delete('/users/:id', softDeleteUser);
 
 

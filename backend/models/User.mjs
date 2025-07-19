@@ -6,7 +6,8 @@ const kycSchema = new mongoose.Schema({
   panImageUrl: String,
   aadharImageUrl: String,
   verified: { type: Boolean, default: false },
-  verificationDate: Date
+  verificationDate: Date,
+  status: { type: String, enum: ['not_submitted', 'pending', 'verified', 'rejected'], default: 'not_submitted' }
 });
 
 const userSchema = new mongoose.Schema({

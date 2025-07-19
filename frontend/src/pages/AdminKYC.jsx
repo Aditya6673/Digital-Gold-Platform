@@ -40,7 +40,15 @@ const AdminKYC = () => {
 
   const handleKycAction = async (applicationId, action) => {
     try {
-      const response = await api.put(`/api/admin/kyc/${applicationId}/${action}`)
+      let url = ''
+      if (action === 'approve') {
+        url = `/api/admin/kyc/verify/${applicationId}`
+      } else if (action === 'reject') {
+        url = `/api/admin/kyc/reject/${applicationId}`
+      } else {
+        throw new Error('Invalid action')
+      }
+      const response = await api.patch(url)
       // Refresh the applications list
       fetchKYCApplications()
       setShowModal(false)
@@ -245,22 +253,35 @@ const AdminKYC = () => {
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <p><strong>Name:</strong> {selectedApplication.user.name}</p>
                   <p><strong>Email:</strong> {selectedApplication.user.email}</p>
-                  <p><strong>Phone:</strong> {selectedApplication.phone || 'Not provided'}</p>
-                  <p><strong>Address:</strong> {selectedApplication.address || 'Not provided'}</p>
+                  <p><strong>Phone:</strong> {selectedApplication.user.phone || 'Not provided'}</p>
                 </div>
               </div>
 
               <div>
                 <h4 className="font-semibold text-gray-800 mb-2">Documents</h4>
                 <div className="space-y-2">
-                  {selectedApplication.documents?.map((doc, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                      <span className="text-sm text-gray-700">{doc.type}</span>
-                      <button className="text-blue-600 hover:text-blue-800 p-1">
-                        <FaDownload />
-                      </button>
+                  <div className="flex flex-col md:flex-row md:space-x-4">
+                    <div className="flex-1 mb-2 md:mb-0">
+                      <span className="text-sm text-gray-700 font-semibold">PAN Image:</span>
+                      {selectedApplication.panImageUrl ? (
+                        <a href={selectedApplication.panImageUrl} target="_blank" rel="noopener noreferrer">
+                          <img src={selectedApplication.panImageUrl} alt="PAN" className="w-40 h-28 object-contain border rounded mt-1" />
+                        </a>
+                      ) : (
+                        <span className="text-gray-500 ml-2">Not uploaded</span>
+                      )}
                     </div>
-                  ))}
+                    <div className="flex-1">
+                      <span className="text-sm text-gray-700 font-semibold">Aadhaar Image:</span>
+                      {selectedApplication.aadharImageUrl ? (
+                        <a href={selectedApplication.aadharImageUrl} target="_blank" rel="noopener noreferrer">
+                          <img src={selectedApplication.aadharImageUrl} alt="Aadhaar" className="w-40 h-28 object-contain border rounded mt-1" />
+                        </a>
+                      ) : (
+                        <span className="text-gray-500 ml-2">Not uploaded</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

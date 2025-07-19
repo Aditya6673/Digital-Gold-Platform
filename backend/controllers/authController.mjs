@@ -119,6 +119,9 @@ export const refreshToken = async (req, res) => {
 export const getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user._id).select('-passwordHash');
+    if (!user.kyc) {
+      user.kyc = { status: 'not_submitted' };
+    }
     res.status(200).json(user);
   } catch (err) {
     next(err);

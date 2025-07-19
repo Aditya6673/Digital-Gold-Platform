@@ -25,6 +25,7 @@ export const submitKyc = async (req, res, next) => {
     user.kyc.aadharImageUrl = aadharImageUrl;
     user.kyc.verified = false;
     user.kyc.verificationDate = null;
+    user.kyc.status = 'pending';
 
     await user.save();
 

@@ -66,12 +66,28 @@ export const AuthProvider = ({ children }) => {
     setUser(null)
   }
 
+  const refreshUser = async () => {
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('token')
+      if (token) {
+        const response = await api.get('/api/auth/me')
+        setUser(response.data)
+      }
+    } catch (error) {
+      localStorage.removeItem('token')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const value = {
     user,
     login,
     register,
     logout,
-    loading
+    loading,
+    refreshUser
   }
 
   return (

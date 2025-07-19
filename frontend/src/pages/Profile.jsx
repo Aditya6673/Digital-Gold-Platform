@@ -7,7 +7,7 @@ import { formatINR } from '../utils/currency.jsx'
 import api from '../lib/axios'
 
 const Profile = () => {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
   const { showSuccess, showError } = useToast()
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -118,6 +118,7 @@ const Profile = () => {
       })
       showSuccess(response.data.message || 'KYC submitted successfully!')
       setKycForm({ pan: '', aadhar: '', panImage: null, aadharImage: null, panImageUrl: '', aadharImageUrl: '' })
+      await refreshUser()
     } catch (error) {
       showError('KYC submission failed. Please try again.')
     } finally {
@@ -141,9 +142,12 @@ const Profile = () => {
           </div>
 
           {/* KYC Section */}
-          {!user?.kycVerified && (
+          {user?.kyc?.status === 'not_submitted' || user?.kyc?.status === 'rejected' ? (
             <div className="gold-card rounded-lg p-6 mb-8">
               <h2 className="text-2xl font-playfair font-semibold text-bronze-primary mb-4">Complete Your KYC</h2>
+              {user?.kyc?.status === 'rejected' && (
+                <div className="mb-4 text-red-600 font-semibold">Your KYC was rejected. Please resubmit your details.</div>
+              )}
               <form onSubmit={handleKycSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">PAN Number</label>
@@ -200,7 +204,17 @@ const Profile = () => {
                 </button>
               </form>
             </div>
-          )}
+          ) : user?.kyc?.status === 'pending' ? (
+            <div className="gold-card rounded-lg p-6 mb-8 text-center">
+              <h2 className="text-2xl font-playfair font-semibold text-bronze-primary mb-4">KYC Under Verification</h2>
+              <p className="text-yellow-700 font-medium">Your KYC documents have been submitted and are under review. Please wait for approval.</p>
+            </div>
+          ) : user?.kyc?.status === 'verified' ? (
+            <div className="gold-card rounded-lg p-6 mb-8 text-center">
+              <h2 className="text-2xl font-playfair font-semibold text-bronze-primary mb-4">KYC Completed</h2>
+              <p className="text-green-700 font-medium">Your KYC is verified. You can now buy and redeem gold.</p>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Profile Information */}
@@ -312,9 +326,21 @@ const Profile = () => {
                     <div>
                       <p className="text-sm text-gray-500">KYC Status</p>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user?.kycVerified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        user?.kyc?.status === 'verified'
+                          ? 'bg-green-100 text-green-800'
+                          : user?.kyc?.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : user?.kyc?.status === 'rejected'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-600'
                       }`}>
-                        {user?.kycVerified ? 'Verified' : 'Pending'}
+                        {user?.kyc?.status === 'verified'
+                          ? 'Verified'
+                          : user?.kyc?.status === 'pending'
+                          ? 'Pending'
+                          : user?.kyc?.status === 'rejected'
+                          ? 'Rejected'
+                          : 'Not Submitted'}
                       </span>
                     </div>
                   </div>
