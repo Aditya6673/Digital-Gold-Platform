@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FaCoins, FaSync, FaClock, FaArrowUp, FaArrowDown } from 'react-icons/fa'
 import { formatINR } from '../utils/currency.jsx'
+import api from '../lib/axios'
+import { useToast } from '../context/ToastContext'
+
+const ADMIN_PASSCODE = '1234'; // Ideally, use env or secure storage
 
 const AdminPriceManager = () => {
   const [currentPrice, setCurrentPrice] = useState(0)
@@ -10,6 +14,12 @@ const AdminPriceManager = () => {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [manualPrice, setManualPrice] = useState('')
+  const [discount, setDiscount] = useState('')
+  const [discountedPrice, setDiscountedPrice] = useState(null)
+  const { showSuccess, showError } = useToast();
+  const [passcode, setPasscode] = useState('');
+  const [passcodeValidated, setPasscodeValidated] = useState(false);
+  const [passcodeError, setPasscodeError] = useState('');
 
   useEffect(() => {
     fetchPriceData()
@@ -62,6 +72,30 @@ const AdminPriceManager = () => {
     }
   }
 
+  const applyDiscount = async () => {
+    if (!discount || isNaN(discount) || parseFloat(discount) > 100) return
+
+    const discountAmount = (parseFloat(discount) / 100) * currentPrice
+    const discountedPrice = currentPrice - discountAmount
+
+    setDiscountedPrice(discountedPrice)
+
+    setUpdating(true)
+    try {
+      const response = await api.post('/api/gold/update-price', { price: discountedPrice })
+      setCurrentPrice(response.data.price)
+      setLastUpdated(response.data.lastUpdated)
+      setDiscount('') // Clear discount input
+      fetchPriceData() // Refresh all data
+      showSuccess('Discount applied and price updated successfully!')
+    } catch (error) {
+      showError('Error applying discount')
+      console.error('Error applying discount:', error)
+    } finally {
+      setUpdating(false)
+    }
+  }
+
   const getPriceChange = () => {
     if (priceHistory.length < 2) return { change: 0, percentage: 0 }
     
@@ -74,6 +108,53 @@ const AdminPriceManager = () => {
   }
 
   const { change, percentage } = getPriceChange()
+
+  const handlePasscodeSubmit = (e) => {
+    e.preventDefault();
+    if (passcode === ADMIN_PASSCODE) {
+      setPasscodeValidated(true);
+      setPasscodeError('');
+    } else {
+      setPasscodeError('Incorrect passcode');
+      showError('Incorrect passcode');
+    }
+  };
+
+  if (!passcodeValidated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-beige-light">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="gold-card p-8 rounded-xl shadow-lg w-full max-w-sm"
+        >
+          <h2 className="font-playfair text-2xl font-bold text-bronze-primary mb-4 text-center">
+            Enter Admin Passcode
+          </h2>
+          <form onSubmit={handlePasscodeSubmit}>
+            <input
+              type="password"
+              value={passcode}
+              onChange={e => setPasscode(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-primary mb-4"
+              placeholder="Enter passcode"
+              autoFocus
+            />
+            {passcodeError && (
+              <div className="text-red-600 text-sm mb-2 text-center">{passcodeError}</div>
+            )}
+            <button
+              type="submit"
+              className="gold-button text-white w-full py-2 rounded-lg font-semibold"
+            >
+              Submit
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -111,8 +192,11 @@ const AdminPriceManager = () => {
               <FaCoins className="text-5xl text-gold-primary mr-4" />
               <div>
                 <h2 className="font-playfair text-4xl font-bold text-bronze-primary">
-                  {formatINR(currentPrice)}
+                  {discountedPrice !== null ? formatINR(discountedPrice) : formatINR(currentPrice)}
                 </h2>
+                {discountedPrice !== null && (
+                  <div className="text-green-700 text-sm font-semibold mt-1">Discounted Price</div>
+                )}
                 <div className="flex items-center justify-center space-x-2 mt-2">
                   {change > 0 ? (
                     <FaArrowUp className="text-green-600" />
@@ -144,7 +228,7 @@ const AdminPriceManager = () => {
           </div>
         </motion.div>
 
-        {/* Manual Price Update */}
+        {/* Discount Option */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -152,100 +236,35 @@ const AdminPriceManager = () => {
           className="gold-card p-6 rounded-xl mb-8"
         >
           <h2 className="font-playfair text-2xl font-bold text-bronze-primary mb-4">
-            Manual Price Update
+            Discount Option
           </h2>
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                New Gold Price (INR)
+                Discount (%)
               </label>
               <input
                 type="number"
                 step="0.01"
-                value={manualPrice}
-                onChange={(e) => setManualPrice(e.target.value)}
-                placeholder="Enter new price..."
+                min="0"
+                max="100"
+                value={discount || ''}
+                onChange={e => setDiscount(e.target.value)}
+                placeholder="Enter discount percentage..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-primary"
               />
             </div>
             <button
-              onClick={updatePriceManually}
-              disabled={!manualPrice || updating}
+              onClick={applyDiscount}
+              disabled={updating || !discount}
               className="gold-button text-white px-6 py-2 rounded-lg disabled:opacity-50"
             >
-              Update Price
+              Apply Discount
             </button>
           </div>
-        </motion.div>
-
-        {/* Price History */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="gold-card p-6 rounded-xl"
-        >
-          <h2 className="font-playfair text-2xl font-bold text-bronze-primary mb-4">
-            Price History
-          </h2>
-          
-          {priceHistory.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Date & Time</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Price (INR)</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Change</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Source</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {priceHistory.map((entry, index) => {
-                    const prevPrice = index < priceHistory.length - 1 ? priceHistory[index + 1].price : entry.price
-                    const change = entry.price - prevPrice
-                    const percentage = prevPrice > 0 ? (change / prevPrice) * 100 : 0
-                    
-                    return (
-                      <motion.tr
-                        key={entry._id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.5, delay: index * 0.05 }}
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                      >
-                        <td className="py-4 px-4 text-gray-700">
-                          {new Date(entry.timestamp).toLocaleString()}
-                        </td>
-                        <td className="py-4 px-4 font-semibold text-gold-primary">
-                          {formatINR(entry.price)}
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center space-x-2">
-                            {change > 0 ? (
-                              <FaArrowUp className="text-green-600 text-sm" />
-                            ) : change < 0 ? (
-                              <FaArrowDown className="text-red-600 text-sm" />
-                            ) : null}
-                            <span className={`text-sm font-semibold ${change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                              {change > 0 ? '+' : ''}{change.toFixed(2)} ({percentage > 0 ? '+' : ''}{percentage.toFixed(2)}%)
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-gray-600">
-                          {entry.source || 'Manual'}
-                        </td>
-                      </motion.tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <FaCoins className="text-6xl text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">No Price History</h3>
-              <p className="text-gray-500">Price history will appear here after updates.</p>
+          {discountedPrice !== null && (
+            <div className="mt-4 text-lg font-semibold text-green-700">
+              Discounted Price: {formatINR(discountedPrice)}
             </div>
           )}
         </motion.div>

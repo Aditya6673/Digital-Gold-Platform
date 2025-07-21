@@ -30,11 +30,26 @@ router.post('/update-price', protect, isAdmin, async (req, res) => {
     res.json({ 
       price: parseFloat(price),
       message: 'Price updated successfully',
-      timestamp: new Date()
+      lastUpdated: new Date()
     });
   } catch (error) {
     console.error('Error updating gold price:', error);
     res.status(500).json({ message: 'Failed to update gold price' });
+  }
+});
+
+// Update gold price from external API (admin only)
+router.post('/update-from-api', protect, isAdmin, async (req, res) => {
+  try {
+    const price = await fetchGoldPriceInINR();
+    // Optionally: Save the price to your DB here
+    res.json({
+      price,
+      lastUpdated: new Date()
+    });
+  } catch (error) {
+    console.error('Error updating price from API:', error);
+    res.status(500).json({ message: 'Failed to update price from API' });
   }
 });
 
