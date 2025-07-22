@@ -2,6 +2,7 @@ import User from '../models/User.mjs';
 import CustomerHolding from '../models/CustomerHolding.mjs';
 import { logAudit } from '../utils/logAudit.mjs';
 import { notifyUser } from '../utils/notifyUser.mjs';
+import bcrypt from 'bcryptjs';
 
 export const getAllUsers = async (req, res, next) => {
   try {
@@ -149,6 +150,21 @@ export const getKycApplications = async (req, res, next) => {
     res.status(200).json({ applications });
   } catch (err) {
     next(err);
+  }
+};
+
+// TEMPORARY: Verify admin passcode from admin user document
+export const verifyPasscode = async (req, res) => {
+  const { passcode } = req.body;
+  if (!passcode) return res.status(400).json({ valid: false, message: 'Passcode required' });
+  // Find the admin user (assuming only one admin user)
+  const adminUser = await User.findOne({ role: 'admin', passcodeHash: { $exists: true } });
+  if (!adminUser || !adminUser.passcodeHash) return res.status(500).json({ valid: false, message: 'Admin passcode not set' });
+  const isValid = await bcrypt.compare(passcode, adminUser.passcodeHash);
+  if (isValid) {
+    return res.json({ valid: true });
+  } else {
+    return res.status(401).json({ valid: false, message: 'Incorrect passcode' });
   }
 };
 

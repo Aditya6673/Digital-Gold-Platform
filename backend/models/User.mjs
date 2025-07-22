@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema({
   phone: { type: String, unique: true, sparse: true },
   role: { type: String,  default: 'customer' },
   passwordHash: String,
+  passcodeHash: String,
   isDeleted: { type: Boolean, default: false },
   kyc: kycSchema,
   createdAt: { type: Date, default: Date.now },

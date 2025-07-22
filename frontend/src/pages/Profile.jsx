@@ -35,6 +35,14 @@ const Profile = () => {
     fetchUserHoldings()
   }, [])
 
+  useEffect(() => {
+    setFormData({
+      name: user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || ''
+    });
+  }, [user]);
+
   const fetchUserHoldings = async () => {
     try {
       const response = await api.get('/api/holdings/me')

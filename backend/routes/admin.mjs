@@ -6,7 +6,8 @@ import {
   getAuditLogs,
   verifyUserKyc,
   rejectUserKyc,
-  getKycApplications
+  getKycApplications,
+  verifyPasscode
 } from '../controllers/adminController.mjs';
 
 import { protect } from '../middlewares/auth.mjs';
@@ -14,12 +15,16 @@ import { isAdmin } from '../middlewares/isAdmin.mjs';
 
 const router = express.Router();
 
+
+
+
 router.use(protect, isAdmin);
 
 router.get('/users', getAllUsers);
 router.get('/stats', getDashboardStats);
 router.get('/audit', getAuditLogs);
 router.get('/kyc', getKycApplications);
+router.post('/verify-passcode', verifyPasscode);
 
 router.delete('/users/:id', softDeleteUser);
 router.patch('/kyc/verify/:userId', protect, isAdmin, verifyUserKyc);

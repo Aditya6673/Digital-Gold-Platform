@@ -5,6 +5,53 @@ import { useAuth } from '../context/AuthContext'
 import api from '../lib/axios'
 import { useNavigate } from 'react-router-dom'
 
+
+const PasscodeModal = ({ open, onClose, onSuccess }) => {
+  const [input, setInput] = useState('');
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.post('/api/admin/verify-passcode', { passcode: input });
+      if (res.data.valid) {
+        setError('');
+        setInput('');
+        onSuccess();
+        onClose();
+      } else {
+        setError('Incorrect passcode');
+      }
+    } catch (err) {
+      setError('Incorrect passcode');
+    }
+  };
+
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-xs mx-2">
+        <h3 className="text-lg font-bold mb-4 text-bronze-primary">Enter Admin Passcode</h3>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="password"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 mb-2 focus:outline-none focus:ring-2 focus:ring-gold-primary"
+            placeholder="Passcode"
+            autoFocus
+          />
+          {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+          <div className="flex justify-end space-x-2">
+            <button type="button" onClick={onClose} className="px-3 py-1 rounded bg-gray-200 text-gray-700">Cancel</button>
+            <button type="submit" className="px-3 py-1 rounded bg-gold-primary text-white">Submit</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const AdminDashboard = () => {
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -17,6 +64,12 @@ const AdminDashboard = () => {
     activeUsers: 0
   })
   const [loading, setLoading] = useState(true)
+  const [passcodeOpen, setPasscodeOpen] = useState(false);
+  const [pendingNav, setPendingNav] = useState(null);
+  const navigateWithPasscode = (path) => {
+    setPendingNav(() => () => navigate(path));
+    setPasscodeOpen(true);
+  };
 
   useEffect(() => {
     fetchAdminStats()
@@ -172,33 +225,40 @@ const AdminDashboard = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <button
               className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform"
-              onClick={() => navigate('/admin/kyc')}
+              onClick={() => navigateWithPasscode('/admin/kyc')}
             >
               <FaShieldAlt className="text-2xl mx-auto mb-2" />
               <span className="font-semibold">Review KYC</span>
             </button>
             <button
               className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform"
-              onClick={() => navigate('/admin/users')}
+              onClick={() => navigateWithPasscode('/admin/users')}
             >
               <FaUsers className="text-2xl mx-auto mb-2" />
               <span className="font-semibold">Manage Users</span>
             </button>
             <button
               className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform"
-              onClick={() => navigate('/admin/price')}
+              onClick={() => navigateWithPasscode('/admin/price')}
             >
               <FaCoins className="text-2xl mx-auto mb-2" />
               <span className="font-semibold">Update Prices</span>
             </button>
             <button
               className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform"
-              onClick={() => navigate('/admin/inventory')}
+              onClick={() => navigateWithPasscode('/admin/inventory')}
             >
               <FaWarehouse className="text-2xl mx-auto mb-2" />
               <span className="font-semibold">Manage Inventory</span>
             </button>
           </div>
+          <PasscodeModal
+            open={passcodeOpen}
+            onClose={() => setPasscodeOpen(false)}
+            onSuccess={() => {
+              if (pendingNav) pendingNav();
+            }}
+          />
         </motion.div>
       </div>
     </div>

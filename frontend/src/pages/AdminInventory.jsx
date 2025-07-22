@@ -4,8 +4,6 @@ import { FaCoins, FaPlus, FaMinus, FaSync, FaWarehouse } from 'react-icons/fa'
 import api from '../lib/axios'
 import { useToast } from '../context/ToastContext'
 
-const ADMIN_PASSCODE = '1234'; // Ideally, use env or secure storage
-
 const AdminInventory = () => {
   const [currentInventory, setCurrentInventory] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -15,9 +13,6 @@ const AdminInventory = () => {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const { showSuccess, showError } = useToast();
-  const [passcode, setPasscode] = useState('');
-  const [passcodeValidated, setPasscodeValidated] = useState(false);
-  const [passcodeError, setPasscodeError] = useState('');
 
   useEffect(() => {
     fetchInventory()
@@ -62,53 +57,6 @@ const AdminInventory = () => {
     } finally {
       setUpdating(false)
     }
-  }
-
-  const handlePasscodeSubmit = (e) => {
-    e.preventDefault();
-    if (passcode === ADMIN_PASSCODE) {
-      setPasscodeValidated(true);
-      setPasscodeError('');
-    } else {
-      setPasscodeError('Incorrect passcode');
-      showError('Incorrect passcode');
-    }
-  };
-
-  if (!passcodeValidated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-beige-light">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="gold-card p-8 rounded-xl shadow-lg w-full max-w-sm"
-        >
-          <h2 className="font-playfair text-2xl font-bold text-bronze-primary mb-4 text-center">
-            Enter Admin Passcode
-          </h2>
-          <form onSubmit={handlePasscodeSubmit}>
-            <input
-              type="password"
-              value={passcode}
-              onChange={e => setPasscode(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-primary mb-4"
-              placeholder="Enter passcode"
-              autoFocus
-            />
-            {passcodeError && (
-              <div className="text-red-600 text-sm mb-2 text-center">{passcodeError}</div>
-            )}
-            <button
-              type="submit"
-              className="gold-button text-white w-full py-2 rounded-lg font-semibold"
-            >
-              Submit
-            </button>
-          </form>
-        </motion.div>
-      </div>
-    );
   }
 
   if (loading) {
