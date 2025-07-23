@@ -32,8 +32,9 @@ const Profile = () => {
   const aadharInputRef = useRef()
 
   useEffect(() => {
-    fetchUserHoldings()
-  }, [])
+    refreshUser();
+    // Optionally, you can debounce or check if user is null to avoid unnecessary calls
+  }, []);
 
   useEffect(() => {
     setFormData({
