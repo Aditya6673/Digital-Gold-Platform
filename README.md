@@ -14,14 +14,13 @@ digital-gold-platform/
 │   ├── utils/             # Utility functions
 │   └── server.mjs         # Server entry point
 ├── frontend/              # React frontend application
-│   ├── src/
-│   │   ├── components/    # Reusable UI components
-│   │   ├── pages/         # Page components
-│   │   ├── context/       # React context providers
-│   │   └── ...
-│   └── ...
-└── studio-master/         # Next.js alternative frontend
-```
+    ├── src/
+    │   ├── components/    # Reusable UI components
+    │   ├── pages/         # Page components
+    │   ├── context/       # React context providers
+    │   └── ...
+    └── ...
+
 
 ## 🚀 Quick Start
 
