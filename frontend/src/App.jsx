@@ -15,6 +15,7 @@ import AdminInventory from './pages/AdminInventory'
 import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
 import ErrorBoundary from './components/ErrorBoundary'
+import NotFound from './pages/NotFound'
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
                 <Route path="/admin/kyc" element={<AdminKYC />} />
                 <Route path="/admin/price" element={<AdminPriceManager />} />
                 <Route path="/admin/inventory" element={<AdminInventory />} />
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </motion.div>
           </div>
