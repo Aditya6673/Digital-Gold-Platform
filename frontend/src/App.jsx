@@ -24,6 +24,7 @@ function App() {
       <AuthProvider>
         <ToastProvider>
           <div className="min-h-screen bg-beige-light">
+            {/* NavBar update */}
             <Navbar />
             <motion.div
               initial={{ opacity: 0 }}
