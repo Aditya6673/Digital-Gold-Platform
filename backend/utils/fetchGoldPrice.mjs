@@ -1,4 +1,5 @@
-import fetch from 'node-fetch';
+// 🪙 Utility: Fetch live gold price in INR (minor formatting change only)
+import fetch from "node-fetch";
 
 export const fetchGoldPriceInINR = async () => {
   const url = "https://www.goldapi.io/api/XAU/INR";
@@ -6,11 +7,11 @@ export const fetchGoldPriceInINR = async () => {
 
   try {
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: {
         "x-access-token": apiKey,
-        "Content-Type": "application/json"
-      }
+        "Content-Type": "application/json",
+      },
     });
 
     if (!response.ok) {
@@ -18,11 +19,16 @@ export const fetchGoldPriceInINR = async () => {
     }
 
     const data = await response.json();
-    // goldapi.io returns price_gram_24k for price per gram in INR
-    if (!data.price_gram_24k) throw new Error('No price_gram_24k in response');
+
+    // ✅ goldapi.io returns `price_gram_24k` for price per gram in INR
+    if (!data.price_gram_24k) {
+      throw new Error("No price_gram_24k in response");
+    }
+
+    // 🧮 Convert to float and return
     return parseFloat(data.price_gram_24k);
   } catch (err) {
-    console.error('Failed to fetch gold price from GoldAPI', err.message);
-    throw new Error('Failed to fetch gold price from GoldAPI');
+    console.error("Failed to fetch gold price from GoldAPI:", err.message);
+    throw new Error("Failed to fetch gold price from GoldAPI");
   }
 };
