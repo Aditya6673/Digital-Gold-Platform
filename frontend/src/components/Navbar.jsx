@@ -97,6 +97,7 @@ const Navbar = () => {
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="text-gray-700 hover:text-gold-primary"
+              aria-label={isOpen ? 'Close menu' : 'Open menu'}
             >
               {isOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
             </button>
