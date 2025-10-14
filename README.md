@@ -1,5 +1,8 @@
 # Digital Gold Platform
 
+
+<img width="1069" height="1068" alt="image" src="https://github.com/user-attachments/assets/1a6490ec-6ef5-489c-8482-0104fea8dbdb" />
+
 A comprehensive digital gold investment platform with a modern React frontend and Node.js backend, featuring secure authentication, real-time gold price tracking, and portfolio management.
 
 ## 🏗️ Project Structure
