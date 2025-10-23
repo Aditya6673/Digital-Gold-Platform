@@ -1,12 +1,23 @@
 import express from 'express';
-import { fetchGoldPriceInINR } from '../utils/fetchGoldPrice.mjs';
+import { fetchGoldPriceInINR, fetchDetailedGoldPrice } from '../utils/fetchGoldPrice.mjs';
 import { isAdmin } from '../middlewares/isAdmin.mjs';
 import { protect } from '../middlewares/auth.mjs';
 
 const router = express.Router();
 
-// Get current gold price
+// Get current gold price with detailed information
 router.get('/price', async (req, res) => {
+  try {
+    const detailedPrice = await fetchDetailedGoldPrice();
+    res.json(detailedPrice);
+  } catch (error) {
+    console.error('Error fetching gold price:', error);
+    res.status(500).json({ message: 'Failed to fetch gold price' });
+  }
+});
+
+// Get simple gold price (backward compatibility)
+router.get('/price/simple', async (req, res) => {
   try {
     const price = await fetchGoldPriceInINR();
     res.json({ price });
@@ -41,11 +52,11 @@ router.post('/update-price', protect, isAdmin, async (req, res) => {
 // Update gold price from external API (admin only)
 router.post('/update-from-api', protect, isAdmin, async (req, res) => {
   try {
-    const price = await fetchGoldPriceInINR();
+    const detailedPrice = await fetchDetailedGoldPrice();
     // Optionally: Save the price to your DB here
     res.json({
-      price,
-      lastUpdated: new Date()
+      ...detailedPrice,
+      message: 'Price updated from Muthoot Finance API'
     });
   } catch (error) {
     console.error('Error updating price from API:', error);
@@ -63,14 +74,18 @@ router.get('/price-history', protect, isAdmin, async (req, res) => {
         {
           _id: '1',
           price: 6500,
+          changeAmount: 50,
+          direction: 'Increase',
           timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          source: 'API'
+          source: 'Muthoot Finance API'
         },
         {
           _id: '2',
           price: 6450,
+          changeAmount: 30,
+          direction: 'Decrease',
           timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-          source: 'Manual'
+          source: 'Muthoot Finance API'
         }
       ]
     });
