@@ -5,7 +5,7 @@ import Transaction from '../models/Transaction.mjs';
 import CustomerHolding from '../models/CustomerHolding.mjs';
 import { notifyUser } from '../utils/notifyUser.mjs';
 import { logAudit } from '../utils/logAudit.mjs';
-import {fetchGoldPriceInINR} from '../utils/fetchGoldPrice.mjs';
+import { fetchDetailedGoldPrice } from '../utils/fetchGoldPrice.mjs';
 
 export const buyGold = async (req, res, next) => {
   const session = await mongoose.startSession();
@@ -26,8 +26,9 @@ export const buyGold = async (req, res, next) => {
       throw new Error('KYC not verified. Cannot proceed with purchase.');
     }
 
-    // ✅ Get live gold price
-    const pricePerGram = await fetchGoldPriceInINR();
+    // ✅ Get live gold price (from MCX)
+    const detailedPrice = await fetchDetailedGoldPrice();
+    const pricePerGram = detailedPrice.price;
     const totalAmount = parseFloat((pricePerGram * grams).toFixed(2));
 
     // ✅ Check inventory
@@ -128,8 +129,9 @@ export const sellGold = async (req, res, next) => {
       throw new Error('Insufficient gold balance to sell');
     }
 
-    // ✅ Get live gold price
-    const pricePerGram = await fetchGoldPriceInINR();
+    // ✅ Get live gold price (from MCX)
+    const detailedPrice = await fetchDetailedGoldPrice();
+    const pricePerGram = detailedPrice.price;
     const totalAmount = parseFloat((pricePerGram * grams).toFixed(2));
 
     // ✅ Create transaction

@@ -1,5 +1,5 @@
 import express from 'express';
-import { fetchGoldPriceInINR, fetchDetailedGoldPrice } from '../utils/fetchGoldPrice.mjs';
+import { fetchDetailedGoldPrice } from '../utils/fetchGoldPrice.mjs';
 import { isAdmin } from '../middlewares/isAdmin.mjs';
 import { protect } from '../middlewares/auth.mjs';
 
@@ -8,7 +8,8 @@ const router = express.Router();
 // Get current gold price with detailed information
 router.get('/price', async (req, res) => {
   try {
-    const detailedPrice = await fetchDetailedGoldPrice();
+    const { commodity, expiry } = req.query;
+    const detailedPrice = await fetchDetailedGoldPrice({ commodity, expiry });
     res.json(detailedPrice);
   } catch (error) {
     console.error('Error fetching gold price:', error);
@@ -16,16 +17,7 @@ router.get('/price', async (req, res) => {
   }
 });
 
-// Get simple gold price (backward compatibility)
-router.get('/price/simple', async (req, res) => {
-  try {
-    const price = await fetchGoldPriceInINR();
-    res.json({ price });
-  } catch (error) {
-    console.error('Error fetching gold price:', error);
-    res.status(500).json({ message: 'Failed to fetch gold price' });
-  }
-});
+// removed legacy simple route; MCX is the single source
 
 // Update gold price (admin only)
 router.post('/update-price', protect, isAdmin, async (req, res) => {
@@ -52,11 +44,12 @@ router.post('/update-price', protect, isAdmin, async (req, res) => {
 // Update gold price from external API (admin only)
 router.post('/update-from-api', protect, isAdmin, async (req, res) => {
   try {
-    const detailedPrice = await fetchDetailedGoldPrice();
+    const { commodity, expiry } = req.body || {};
+    const detailedPrice = await fetchDetailedGoldPrice({ commodity, expiry });
     // Optionally: Save the price to your DB here
     res.json({
       ...detailedPrice,
-      message: 'Price updated from Muthoot Finance API'
+      message: 'Price updated from external API'
     });
   } catch (error) {
     console.error('Error updating price from API:', error);
@@ -77,7 +70,7 @@ router.get('/price-history', protect, isAdmin, async (req, res) => {
           changeAmount: 50,
           direction: 'Increase',
           timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-          source: 'Muthoot Finance API'
+          source: 'MCX'
         },
         {
           _id: '2',
@@ -85,7 +78,7 @@ router.get('/price-history', protect, isAdmin, async (req, res) => {
           changeAmount: 30,
           direction: 'Decrease',
           timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-          source: 'Muthoot Finance API'
+          source: 'MCX'
         }
       ]
     });
