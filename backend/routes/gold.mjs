@@ -9,8 +9,9 @@ const router = express.Router();
 // 🟡 Route: Get current gold price
 router.get("/price", async (req, res) => {
   try {
-    const price = await fetchGoldPriceInINR();
-    res.json({ price });
+    const { commodity, expiry } = req.query;
+    const detailedPrice = await fetchDetailedGoldPrice({ commodity, expiry });
+    res.json(detailedPrice);
   } catch (error) {
     console.error("Error fetching gold price:", error);
     res.status(500).json({ message: "Failed to fetch gold price" });
@@ -61,12 +62,16 @@ router.get("/price-history", protect, isAdmin, async (req, res) => {
         {
           _id: "1",
           price: 6500,
+          changeAmount: 50,
+          direction: 'Increase',
           timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
           source: "API",
         },
         {
           _id: "2",
           price: 6450,
+          changeAmount: 30,
+          direction: 'Decrease',
           timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
           source: "Manual",
         },

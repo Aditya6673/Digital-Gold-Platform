@@ -11,6 +11,7 @@ const Dashboard = () => {
   const { user } = useAuth()
   const { showSuccess, showError } = useToast()
   const [goldPrice, setGoldPrice] = useState(0)
+  const [priceChange, setPriceChange] = useState({ amount: 0, direction: 'No change' })
   const [portfolioValue, setPortfolioValue] = useState(0)
   const [holdings, setHoldings] = useState([])
   const [recentTransactions, setRecentTransactions] = useState([])
@@ -26,9 +27,13 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch gold price
+      // Fetch gold price with detailed information
       const priceResponse = await api.get('/api/gold/price')
       setGoldPrice(priceResponse.data.price || 2000)
+      setPriceChange({
+        amount: priceResponse.data.changeAmount || 0,
+        direction: priceResponse.data.direction || 'No change'
+      })
 
       // Fetch portfolio data
               const portfolioResponse = await api.get('/api/holdings/me')
@@ -189,6 +194,21 @@ const Dashboard = () => {
               <div>
                 <p className="text-gray-600 text-sm">Current Gold Price</p>
                 <p className="text-2xl font-bold text-gold-primary">{formatINR(goldPrice)}</p>
+                {priceChange.amount > 0 && (
+                  <div className="flex items-center space-x-1 mt-1">
+                    {priceChange.direction === 'Increase' ? (
+                      <FaArrowUp className="text-green-500 text-sm" />
+                    ) : priceChange.direction === 'Decrease' ? (
+                      <FaArrowDown className="text-red-500 text-sm" />
+                    ) : null}
+                    <span className={`text-sm font-medium ${
+                      priceChange.direction === 'Increase' ? 'text-green-500' : 
+                      priceChange.direction === 'Decrease' ? 'text-red-500' : 'text-gray-500'
+                    }`}>
+                      {formatINR(priceChange.amount)} ({priceChange.direction})
+                    </span>
+                  </div>
+                )}
               </div>
               <FaCoins className="text-3xl text-gold-primary" />
             </div>

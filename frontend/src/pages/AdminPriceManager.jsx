@@ -7,6 +7,7 @@ import { useToast } from '../context/ToastContext'
 
 const AdminPriceManager = () => {
   const [currentPrice, setCurrentPrice] = useState(0)
+  const [priceChange, setPriceChange] = useState({ amount: 0, direction: 'No change' })
   const [lastUpdated, setLastUpdated] = useState(null)
   const [priceHistory, setPriceHistory] = useState([])
   const [loading, setLoading] = useState(true)
@@ -24,6 +25,10 @@ const AdminPriceManager = () => {
     try {
       const response = await api.get('/api/gold/price')
       setCurrentPrice(response.data.price || 0)
+      setPriceChange({
+        amount: response.data.changeAmount || 0,
+        direction: response.data.direction || 'No change'
+      })
       setLastUpdated(response.data.lastUpdated || null)
       
       // Fetch price history
@@ -41,10 +46,16 @@ const AdminPriceManager = () => {
     try {
       const response = await api.post('/api/gold/update-from-api')
       setCurrentPrice(response.data.price)
+      setPriceChange({
+        amount: response.data.changeAmount || 0,
+        direction: response.data.direction || 'No change'
+      })
       setLastUpdated(response.data.lastUpdated)
+      showSuccess('Price updated from Muthoot Finance API successfully!')
       fetchPriceData() // Refresh all data
     } catch (error) {
       console.error('Error updating price from API:', error)
+      showError('Failed to update price from API')
     } finally {
       setUpdating(false)
     }
@@ -146,14 +157,33 @@ const AdminPriceManager = () => {
                   <div className="text-green-700 text-sm font-semibold mt-1">Discounted Price</div>
                 )}
                 <div className="flex items-center justify-center space-x-2 mt-2">
-                  {change > 0 ? (
-                    <FaArrowUp className="text-green-600" />
-                  ) : change < 0 ? (
-                    <FaArrowDown className="text-red-600" />
-                  ) : null}
-                  <span className={`text-sm font-semibold ${change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                    {change > 0 ? '+' : ''}{change.toFixed(2)} ({percentage > 0 ? '+' : ''}{percentage.toFixed(2)}%)
-                  </span>
+                  {priceChange.amount > 0 && (
+                    <>
+                      {priceChange.direction === 'Increase' ? (
+                        <FaArrowUp className="text-green-600" />
+                      ) : priceChange.direction === 'Decrease' ? (
+                        <FaArrowDown className="text-red-600" />
+                      ) : null}
+                      <span className={`text-sm font-semibold ${
+                        priceChange.direction === 'Increase' ? 'text-green-600' : 
+                        priceChange.direction === 'Decrease' ? 'text-red-600' : 'text-gray-600'
+                      }`}>
+                        {formatINR(priceChange.amount)} ({priceChange.direction})
+                      </span>
+                    </>
+                  )}
+                  {priceChange.amount === 0 && change !== 0 && (
+                    <>
+                      {change > 0 ? (
+                        <FaArrowUp className="text-green-600" />
+                      ) : change < 0 ? (
+                        <FaArrowDown className="text-red-600" />
+                      ) : null}
+                      <span className={`text-sm font-semibold ${change > 0 ? 'text-green-600' : change < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                        {change > 0 ? '+' : ''}{change.toFixed(2)} ({percentage > 0 ? '+' : ''}{percentage.toFixed(2)}%)
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -170,7 +200,7 @@ const AdminPriceManager = () => {
                 className="gold-button text-white px-6 py-3 rounded-lg flex items-center space-x-2 disabled:opacity-50"
               >
                 <FaSync className={updating ? 'animate-spin' : ''} />
-                <span>{updating ? 'Updating...' : 'Update from API'}</span>
+                <span>{updating ? 'Updating...' : 'Update from Muthoot Finance'}</span>
               </button>
             </div>
           </div>
