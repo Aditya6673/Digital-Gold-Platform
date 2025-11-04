@@ -2,7 +2,9 @@ import express from 'express';
 import dotenv from 'dotenv';
 import connectDB from './config/db.mjs';
 import cors from 'cors';
+import helmet from 'helmet';
 import { errorHandler } from './middlewares/errorHandler.mjs';
+import { notFound } from './middlewares/notFound.mjs';
 
 // Import routes
 import authRoutes from './routes/auth.mjs';
@@ -23,8 +25,10 @@ await connectDB(); // connect to MongoDB
 const app = express();
 
 app.use(express.json()); // parse JSON bodies
+app.disable('x-powered-by');
+app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN, // allow all origins or specify your frontend URL
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173', // allow all origins or specify your frontend URL
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // allowed HTTP methods
   credentials: true,
 })); // enable CORS for all routes
@@ -44,11 +48,12 @@ app.use('/api/gold', goldRoutes);
 app.get('/', (req, res) => {
   res.send('<h1>💰 Digital Gold Platform API is running</h1>');
 });
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', uptime: process.uptime() });
+});
 
 // 404 fallback
-app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
+app.use(notFound);
 
 // Error handler
 app.use(errorHandler);

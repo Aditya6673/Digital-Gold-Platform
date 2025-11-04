@@ -29,7 +29,9 @@ api.interceptors.response.use(
     return response
   },
   (error) => {
-    console.error('API Error:', error)
+    const status = error.response?.status
+    const message = error.response?.data?.message || error.message
+    console.error('API Error:', { status, message })
     if (error.response?.status === 401) {
       localStorage.removeItem('token')
       window.location.href = '/login'
