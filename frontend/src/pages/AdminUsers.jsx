@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FaUsers, FaFilter, FaSearch, FaEye, FaTrash, FaShieldAlt, FaCheck, FaTimes } from 'react-icons/fa'
+import {
+  FaUsers,
+  FaFilter,
+  FaSearch,
+  FaEye,
+  FaTrash,
+  FaShieldAlt,
+  FaCheck,
+  FaTimes,
+} from 'react-icons/fa'
 import api from '../lib/axios'
 
 const AdminUsers = () => {
@@ -10,7 +19,7 @@ const AdminUsers = () => {
   const [filters, setFilters] = useState({
     kycStatus: 'all',
     deleted: 'all',
-    search: ''
+    search: '',
   })
 
   useEffect(() => {
@@ -24,12 +33,18 @@ const AdminUsers = () => {
   const fetchUsers = async () => {
     try {
       const response = await api.get('/api/admin/users')
+
       // Fallback: filter out admins if any slip through
       const nonAdminUsers = Array.isArray(response.data)
         ? response.data.filter(u => u.role !== 'admin')
         : (response.data.users || []).filter(u => u.role !== 'admin')
+
       // Map isDeleted to deleted for frontend filtering
-      const mappedUsers = nonAdminUsers.map(u => ({ ...u, deleted: u.isDeleted }))
+      const mappedUsers = nonAdminUsers.map(u => ({
+        ...u,
+        deleted: u.isDeleted,
+      }))
+
       setUsers(mappedUsers)
     } catch (error) {
       console.error('Error fetching users:', error)
@@ -57,9 +72,10 @@ const AdminUsers = () => {
 
     // Apply search filter
     if (filters.search) {
-      filtered = filtered.filter(user => 
-        user.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-        user.email.toLowerCase().includes(filters.search.toLowerCase())
+      filtered = filtered.filter(
+        user =>
+          user.name.toLowerCase().includes(filters.search.toLowerCase()) ||
+          user.email.toLowerCase().includes(filters.search.toLowerCase())
       )
     }
 
@@ -69,11 +85,11 @@ const AdminUsers = () => {
   const handleFilterChange = (key, value) => {
     setFilters(prev => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }))
   }
 
-  const getKycStatusColor = (status) => {
+  const getKycStatusColor = status => {
     switch (status) {
       case 'verified':
         return 'text-green-600 bg-green-100'
@@ -86,7 +102,7 @@ const AdminUsers = () => {
     }
   }
 
-  const getKycStatusIcon = (status) => {
+  const getKycStatusIcon = status => {
     switch (status) {
       case 'verified':
         return <FaCheck className="text-green-600" />
@@ -120,7 +136,9 @@ const AdminUsers = () => {
           <h1 className="font-playfair text-4xl font-bold text-bronze-primary mb-2">
             User Management
           </h1>
-          <p className="text-gray-600">Manage platform users and their KYC status</p>
+          <p className="text-gray-600">
+            Manage platform users and their KYC status
+          </p>
         </motion.div>
 
         {/* Filters */}
@@ -136,7 +154,9 @@ const AdminUsers = () => {
                 <FaFilter className="text-gold-primary" />
                 <select
                   value={filters.kycStatus}
-                  onChange={(e) => handleFilterChange('kycStatus', e.target.value)}
+                  onChange={e =>
+                    handleFilterChange('kycStatus', e.target.value)
+                  }
                   className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gold-primary"
                 >
                   <option value="all">All KYC Status</option>
@@ -148,7 +168,7 @@ const AdminUsers = () => {
               <div className="flex items-center space-x-2">
                 <select
                   value={filters.deleted}
-                  onChange={(e) => handleFilterChange('deleted', e.target.value)}
+                  onChange={e => handleFilterChange('deleted', e.target.value)}
                   className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-gold-primary"
                 >
                   <option value="all">All Users</option>
@@ -164,7 +184,7 @@ const AdminUsers = () => {
                 type="text"
                 placeholder="Search users..."
                 value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
+                onChange={e => handleFilterChange('search', e.target.value)}
                 className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-primary"
               />
             </div>
@@ -183,7 +203,8 @@ const AdminUsers = () => {
               All Users
             </h2>
             <span className="text-gray-600">
-              {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''}
+              {filteredUsers.length} user
+              {filteredUsers.length !== 1 ? 's' : ''}
             </span>
           </div>
 
@@ -192,12 +213,24 @@ const AdminUsers = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">User</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Email</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">KYC Status</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Joined</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      User
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Email
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      KYC Status
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Joined
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Status
+                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -207,7 +240,9 @@ const AdminUsers = () => {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.5, delay: index * 0.05 }}
-                      className={`border-b border-gray-100 hover:bg-gray-50 ${user.deleted ? 'opacity-60' : ''}`}
+                      className={`border-b border-gray-100 hover:bg-gray-50 ${
+                        user.deleted ? 'opacity-60' : ''
+                      }`}
                     >
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-3">
@@ -217,8 +252,12 @@ const AdminUsers = () => {
                             </span>
                           </div>
                           <div>
-                            <p className="font-semibold text-gray-800">{user.name}</p>
-                            <p className="text-sm text-gray-600">ID: {user._id.slice(-8)}</p>
+                            <p className="font-semibold text-gray-800">
+                              {user.name}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              ID: {user._id.slice(-8)}
+                            </p>
                           </div>
                         </div>
                       </td>
@@ -226,7 +265,11 @@ const AdminUsers = () => {
                       <td className="py-4 px-4">
                         <div className="flex items-center space-x-2">
                           {getKycStatusIcon(user.kycStatus)}
-                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getKycStatusColor(user.kycStatus)}`}>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${getKycStatusColor(
+                              user.kycStatus
+                            )}`}
+                          >
                             {user.kycStatus}
                           </span>
                         </div>
@@ -235,7 +278,13 @@ const AdminUsers = () => {
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                       <td className="py-4 px-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${user.deleted ? 'text-red-600 bg-red-100' : 'text-green-600 bg-green-100'}`}>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                            user.deleted
+                              ? 'text-red-600 bg-red-100'
+                              : 'text-green-600 bg-green-100'
+                          }`}
+                        >
                           {user.deleted ? 'Deleted' : 'Active'}
                         </span>
                       </td>
@@ -257,11 +306,13 @@ const AdminUsers = () => {
           ) : (
             <div className="text-center py-12">
               <FaUsers className="text-6xl text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">No Users Found</h3>
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                No Users Found
+              </h3>
               <p className="text-gray-500">
-                {users.length === 0 
-                  ? "No users have registered yet." 
-                  : "No users match your current filters."}
+                {users.length === 0
+                  ? 'No users have registered yet.'
+                  : 'No users match your current filters.'}
               </p>
             </div>
           )}
@@ -271,4 +322,4 @@ const AdminUsers = () => {
   )
 }
 
-export default AdminUsers 
+export default AdminUsers
