@@ -32,7 +32,7 @@ export const updateInventory = async (req, res, next) => {
     }
 
     if (!['add', 'remove'].includes(operation)) {
-      return res.status(400).json({ message: 'Invalid operation. Use "add" or "remove"' });
+      return res.status(400).json(  { message: ' Invalid operation. Use "add" or "remove"' });
     }
 
     let inventory = await GoldInventory.findOne({ isDeleted: false });
