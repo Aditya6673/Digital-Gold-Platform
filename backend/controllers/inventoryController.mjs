@@ -5,11 +5,18 @@ import { logAudit } from '../utils/logAudit.mjs';
 export const getInventory = async (req, res, next) => {
   try {
     const inventory = await GoldInventory.findOne({ isDeleted: false });
-    if (!inventory) return res.status(404).json({ message: 'No inventory found' });
+
+    if (!inventory) {
+      return res.status(404).json({ message: 'No inventory found' });
+    }
 
     // Ensure availableGrams is a number
     const availableGrams = parseFloat(inventory.availableGrams.toString());
-    res.status(200).json({ ...inventory.toObject(), availableGrams });
+
+    res.status(200).json({
+      ...inventory.toObject(),
+      availableGrams,
+    });
   } catch (err) {
     next(err);
   }
@@ -45,35 +52,38 @@ export const updateInventory = async (req, res, next) => {
       } else {
         inventory.availableGrams -= grams;
       }
+
       await inventory.save();
     }
 
     const action = operation === 'add' ? 'add_inventory' : 'remove_inventory';
     const changeKey = operation === 'add' ? 'addedGrams' : 'removedGrams';
-    
+
     await logAudit({
       action,
       performedBy: req.user._id,
       targetModel: 'GoldInventory',
       targetId: inventory._id,
-      changes: { 
-        [changeKey]: grams, 
-        newAvailableGrams: parseFloat(inventory.availableGrams.toString()) 
-      }
+      changes: {
+        [changeKey]: grams,
+        newAvailableGrams: parseFloat(inventory.availableGrams.toString()),
+      },
     });
 
-    const message = operation === 'add' 
-      ? `${grams} grams added to inventory` 
-      : `${grams} grams removed from inventory`;
+    const message =
+      operation === 'add'
+        ? `${grams} grams added to inventory`
+        : `${grams} grams removed from inventory`;
 
     // Ensure availableGrams is a number in the response
     const availableGrams = parseFloat(inventory.availableGrams.toString());
-    res.status(200).json({ 
-      message, 
+
+    res.status(200).json({
+      message,
       inventory: { ...inventory.toObject(), availableGrams },
       operation,
       gramsChanged: grams,
-      newTotal: availableGrams
+      newTotal: availableGrams,
     });
   } catch (err) {
     next(err);
