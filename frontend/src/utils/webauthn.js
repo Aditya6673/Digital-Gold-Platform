@@ -1,6 +1,16 @@
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import api from '../lib/axios';
 
+const bufferToBase64URLString = (buffer) => {
+  if (!buffer) return null;
+  const bytes = new Uint8Array(buffer);
+  let str = '';
+  bytes.forEach((b) => {
+    str += String.fromCharCode(b);
+  });
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+
 /**
  * Check if WebAuthn is supported in the browser
  */
@@ -33,8 +43,21 @@ export const registerWebAuthn = async () => {
     // Start registration
     const credential = await startRegistration(options);
 
+    const payload = {
+      id: credential.id,
+      rawId: bufferToBase64URLString(credential.rawId),
+      type: credential.type,
+      authenticatorAttachment: credential.authenticatorAttachment,
+      response: {
+        clientDataJSON: bufferToBase64URLString(credential.response.clientDataJSON),
+        attestationObject: bufferToBase64URLString(credential.response.attestationObject),
+        transports: credential.response?.getTransports?.() || []
+      },
+      clientExtensionResults: credential.getClientExtensionResults()
+    };
+
     // Verify registration
-    const verifyResponse = await api.post('/api/webauthn/register/verify', credential);
+    const verifyResponse = await api.post('/api/webauthn/register/verify', payload);
     
     return {
       success: verifyResponse.data.verified,
@@ -61,10 +84,26 @@ export const authenticateWebAuthn = async (email) => {
     // Start authentication
     const authenticationResponse = await startAuthentication(options);
 
+    const payload = {
+      id: authenticationResponse.id,
+      rawId: bufferToBase64URLString(authenticationResponse.rawId),
+      type: authenticationResponse.type,
+      authenticatorAttachment: authenticationResponse.authenticatorAttachment,
+      response: {
+        clientDataJSON: bufferToBase64URLString(authenticationResponse.response.clientDataJSON),
+        authenticatorData: bufferToBase64URLString(authenticationResponse.response.authenticatorData),
+        signature: bufferToBase64URLString(authenticationResponse.response.signature),
+        userHandle: authenticationResponse.response.userHandle
+          ? bufferToBase64URLString(authenticationResponse.response.userHandle)
+          : null
+      },
+      clientExtensionResults: authenticationResponse.getClientExtensionResults()
+    };
+
     // Verify authentication
     const verifyResponse = await api.post('/api/webauthn/authenticate/verify', {
       email,
-      body: authenticationResponse
+      body: payload
     });
 
     if (verifyResponse.data.verified) {
@@ -97,4 +136,3 @@ export const authenticateWebAuthn = async (email) => {
     };
   }
 };
-
