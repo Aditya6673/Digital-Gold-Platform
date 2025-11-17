@@ -12,6 +12,7 @@ import AdminUsers from './pages/AdminUsers'
 import AdminKYC from './pages/AdminKYC'
 import AdminPriceManager from './pages/AdminPriceManager'
 import AdminInventory from './pages/AdminInventory'
+import WebAuthnRegister from './pages/WebAuthnRegister'
 import { AuthProvider } from './context/AuthContext'
 import { ToastProvider } from './context/ToastContext'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -42,6 +43,7 @@ function App() {
                 <Route path="/admin/kyc" element={<AdminKYC />} />
                 <Route path="/admin/price" element={<AdminPriceManager />} />
                 <Route path="/admin/inventory" element={<AdminInventory />} />
+                <Route path="/admin/webauthn/register" element={<WebAuthnRegister />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </motion.div>
