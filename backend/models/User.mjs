@@ -22,6 +22,14 @@ const webauthnCredentialSchema = new mongoose.Schema({
   registeredAt: { type: Date, default: Date.now }
 });
 
+const webauthnCredentialSchema = new mongoose.Schema({
+  credentialID: { type: String, required: true },
+  credentialPublicKey: { type: String, required: true },
+  counter: { type: Number, default: 0 },
+  deviceType: String,
+  registeredAt: { type: Date, default: Date.now }
+});
+
 const userSchema = new mongoose.Schema({
   name: String,
   email: { type: String, unique: true },
