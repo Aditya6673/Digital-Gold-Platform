@@ -78,11 +78,22 @@ export const login = async (req, res, next) => {
     const user = await User.findOne({ email });
     if (!user || user.isDeleted) return res.status(401).json({ message: 'Invalid credentials' });
 
+    // Check if admin has WebAuthn enabled - if so, require WebAuthn instead of password
+    if (user.role === 'admin' && user.webauthnEnabled) {
+      return res.status(403).json({ 
+        message: 'WebAuthn authentication required for admin account',
+        requiresWebAuthn: true 
+      });
+    }
+
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) return res.status(401).json({ message: 'Invalid credentials' });
 
     const token = createAccessToken(user);
     const refreshToken = createRefreshToken(user);
+
+    user.lastLogin = new Date();
+    await user.save();
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
