@@ -5,8 +5,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const rpName = 'Digital Gold Platform';
-const rpID = process.env.WEBAUTHN_RP_ID || 'localhost';
-const origin = process.env.WEBAUTHN_ORIGIN || `http://${rpID}:5173`;
+const rpID = process.env.WEBAUTHN_RP_ID;
+const origin = process.env.WEBAUTHN_ORIGIN;
 
 const createAccessToken = (user) => {
   return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
