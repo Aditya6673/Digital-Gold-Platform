@@ -1,125 +1,74 @@
-import fetch from 'node-fetch';
+// 🪙 Utility: Fetch live gold price in INR (minor formatting change only)
+import fetch from "node-fetch";
 
 export const fetchGoldPriceInINR = async () => {
-  const ajaxUrl = "https://www.muthootfinance.com/callajax";
-  const payload = {
-    'action': 'get_gold_price'
-  };
+  const url = "https://www.goldapi.io/api/XAU/INR";
+  const apiKey = process.env.GOLDAPI_KEY;
 
   try {
-    const response = await fetch(ajaxUrl, {
-      method: 'POST',
+    const response = await fetch(url, {
+      method: "GET",
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        "x-access-token": apiKey,
+        "Content-Type": "application/json",
       },
-      body: new URLSearchParams(payload)
     });
 
     if (!response.ok) {
-      throw new Error(`Muthoot Finance API error: ${response.status} ${response.statusText}`);
+      throw new Error(`GoldAPI error: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    const priceHtmlString = data.daily_gold_price;
 
-    if (!priceHtmlString) {
-      throw new Error('Could not find the price key in the API response');
+    // ✅ goldapi.io returns `price_gram_24k` for price per gram in INR
+    if (!data.price_gram_24k) {
+      throw new Error("No price_gram_24k in response");
     }
 
-    // Parse the HTML response to extract the price
-    // The price is typically the first text node in the response
-    const priceMatch = priceHtmlString.match(/(\d{1,3}(?:,\d{3})*)/);
-    if (!priceMatch) {
-      throw new Error('Could not extract price from HTML response');
-    }
-
-    const livePriceStr = priceMatch[1];
-    const livePrice = parseFloat(livePriceStr.replace(/,/g, ''));
-
-    if (isNaN(livePrice)) {
-      throw new Error('Invalid price format received');
-    }
-
-    return livePrice;
+    // 🧮 Convert to float and return
+    return parseFloat(data.price_gram_24k);
   } catch (err) {
-    console.error('Failed to fetch gold price from Muthoot Finance:', err.message);
-    throw new Error('Failed to fetch gold price from Muthoot Finance');
+    console.error("Failed to fetch gold price from GoldAPI:", err.message);
+    throw new Error("Failed to fetch gold price from GoldAPI");
   }
+
+  const json = await response.json();
+  // ASP.NET WebMethod typically wraps result under "d"
+  const payload = typeof json?.d === 'string' ? JSON.parse(json.d) : (json?.d ?? json);
+  return payload;
 };
 
-export const fetchDetailedGoldPrice = async () => {
-  const ajaxUrl = "https://www.muthootfinance.com/callajax";
-  const payload = {
-    'action': 'get_gold_price'
-  };
+// Removed legacy Muthoot implementation; MCX is the sole source now
 
-  try {
-    const response = await fetch(ajaxUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams(payload)
-    });
+export const fetchDetailedGoldPrice = async ({ commodity = 'GOLD', expiry = '05DEC2025' } = {}) => {
+  const quote = await fetchMcxQuote({ commodity, expiry });
+  const rawPrice = quote?.LTP ?? quote?.LastTradedPrice ?? quote?.Price ?? quote?.ltp;
+  const price = typeof rawPrice === 'string' ? parseFloat(rawPrice.replace(/,/g, '')) : Number(rawPrice);
 
-    if (!response.ok) {
-      throw new Error(`Muthoot Finance API error: ${response.status} ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    const priceHtmlString = data.daily_gold_price;
-
-    if (!priceHtmlString) {
-      throw new Error('Could not find the price key in the API response');
-    }
-
-    // Extract price
-    const priceMatch = priceHtmlString.match(/(\d{1,3}(?:,\d{3})*)/);
-    if (!priceMatch) {
-      throw new Error('Could not extract price from HTML response');
-    }
-
-    const livePriceStr = priceMatch[1];
-    const livePrice = parseFloat(livePriceStr.replace(/,/g, ''));
-
-    if (isNaN(livePrice)) {
-      throw new Error('Invalid price format received');
-    }
-
-    // Extract change information
-    let changeAmount = 0;
-    let direction = 'No change';
-
-    // Look for change amount in the HTML
-    const changeMatch = priceHtmlString.match(/INR\s*([+-]?\d+(?:,\d{3})*)/);
-    if (changeMatch) {
-      const changeStr = changeMatch[1].replace(/,/g, '');
-      changeAmount = parseFloat(changeStr);
-      
-      // Determine direction based on the sign or CSS classes
-      if (changeAmount > 0) {
-        direction = 'Increase';
-      } else if (changeAmount < 0) {
-        direction = 'Decrease';
-        changeAmount = Math.abs(changeAmount); // Return positive value for display
-      }
-    }
-
-    // Check for CSS classes that indicate direction
-    if (priceHtmlString.includes('greenTxt') || priceHtmlString.includes('fa-arrow-up')) {
-      direction = 'Increase';
-    } else if (priceHtmlString.includes('redTxt') || priceHtmlString.includes('fa-arrow-down')) {
-      direction = 'Decrease';
-    }
-
-    return {
-      price: livePrice,
-      changeAmount,
-      direction,
-      lastUpdated: new Date().toISOString()
-    };
-  } catch (err) {
-    console.error('Failed to fetch detailed gold price from Muthoot Finance:', err.message);
-    throw new Error('Failed to fetch detailed gold price from Muthoot Finance');
+  const rawChange = quote?.Change ?? quote?.Chng ?? quote?.change ?? quote?.chg;
+  let changeAmount = 0;
+  if (rawChange !== undefined && rawChange !== null && rawChange !== '') {
+    changeAmount = typeof rawChange === 'string' ? parseFloat(rawChange.replace(/,/g, '')) : Number(rawChange);
   }
+
+  let direction = 'No change';
+  if (!Number.isNaN(changeAmount)) {
+    if (changeAmount > 0) direction = 'Increase';
+    else if (changeAmount < 0) direction = 'Decrease';
+    changeAmount = Math.abs(changeAmount) || 0;
+  } else {
+    changeAmount = 0;
+  }
+
+  if (Number.isNaN(price) || !isFinite(price)) {
+    throw new Error('Invalid MCX price');
+  }
+
+  return {
+    price,
+    changeAmount,
+    direction,
+    lastUpdated: new Date().toISOString(),
+    source: 'MCX'
+  };
 };

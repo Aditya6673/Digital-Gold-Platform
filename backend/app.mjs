@@ -24,6 +24,7 @@ dotenv.config(); // load .env
 await connectDB(); // connect to MongoDB
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(express.json()); // parse JSON bodies
 app.disable('x-powered-by');
