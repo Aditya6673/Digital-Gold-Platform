@@ -14,6 +14,8 @@ const AdminPriceManager = () => {
   const [updating, setUpdating] = useState(false)
   const [manualPrice, setManualPrice] = useState('')
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [priceSetForToday, setPriceSetForToday] = useState(false)
+  const [todayPrice, setTodayPrice] = useState(null)
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
@@ -29,6 +31,8 @@ const AdminPriceManager = () => {
         direction: response.data.direction || 'No change'
       })
       setLastUpdated(response.data.lastUpdated || null)
+      setPriceSetForToday(response.data.priceSetForToday || false)
+      setTodayPrice(response.data.todayPrice || null)
       
       // Fetch price history
       const historyResponse = await api.get('/api/gold/price-history')
@@ -65,14 +69,19 @@ const AdminPriceManager = () => {
       })
       setLastUpdated(response.data.lastUpdated)
       setManualPrice('')
+      // Mark price as set for today
+      setPriceSetForToday(true)
+      setTodayPrice(response.data.price)
       showSuccess('Price set successfully for today!')
       fetchPriceData() // Refresh all data
     } catch (error) {
       console.error('Error setting price:', error)
       const errorMessage = error.response?.data?.message || 'Failed to set price'
       showError(errorMessage)
-      // If price already set today, show the existing price
+      // If price already set today, update state and show the existing price
       if (error.response?.data?.existingPrice) {
+        setPriceSetForToday(true)
+        setTodayPrice(error.response.data.existingPrice)
         showError(`Price already set for today: Rs ${error.response.data.existingPrice.toLocaleString()}`)
       }
     } finally {
@@ -182,35 +191,56 @@ const AdminPriceManager = () => {
             <FaEdit className="mr-2" />
             Set Price for Today
           </h2>
-          <div className="flex flex-col sm:flex-row gap-4 items-end">
-            <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price per Gram (₹)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={manualPrice}
-                onChange={e => setManualPrice(e.target.value)}
-                placeholder="Enter price per gram..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-primary"
-              />
-              {currentPrice > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Current price: {formatINR(currentPrice)}
-                </p>
-              )}
+          
+          {priceSetForToday ? (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+              <div className="flex items-center justify-center mb-3">
+                <FaCoins className="text-3xl text-green-600 mr-3" />
+                <div>
+                  <p className="text-lg font-semibold text-green-800">Price Already Set for Today</p>
+                  <p className="text-2xl font-bold text-green-700 mt-1">
+                    {formatINR(todayPrice || currentPrice)}
+                  </p>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600 mt-2">
+                The gold price for today has already been set. You can only set the price once per day.
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleString() : 'N/A'}
+              </p>
             </div>
-            <button
-              onClick={handleSetPriceClick}
-              disabled={updating || !manualPrice}
-              className="gold-button text-white px-6 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50"
-            >
-              <FaCoins />
-              <span>{updating ? 'Setting...' : 'Set Price'}</span>
-            </button>
-          </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Price per Gram (₹)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={manualPrice}
+                  onChange={e => setManualPrice(e.target.value)}
+                  placeholder="Enter price per gram..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-primary"
+                />
+                {currentPrice > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Current price: {formatINR(currentPrice)}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleSetPriceClick}
+                disabled={updating || !manualPrice}
+                className="gold-button text-white px-6 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50"
+              >
+                <FaCoins />
+                <span>{updating ? 'Setting...' : 'Set Price'}</span>
+              </button>
+            </div>
+          )}
         </motion.div>
 
         {/* Confirmation Dialog */}

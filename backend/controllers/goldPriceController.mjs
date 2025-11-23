@@ -32,12 +32,24 @@ export const getCurrentPrice = async (req, res, next) => {
       changeAmount = Math.abs(changeAmount);
     }
 
+    // Check if price has been set for today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayHistory = await GoldPriceHistory.findOne({
+      date: {
+        $gte: today,
+        $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+      }
+    });
+
     res.json({
       price,
       changeAmount,
       direction,
       lastUpdated: currentPrice.lastUpdated,
-      source: currentPrice.source
+      source: currentPrice.source,
+      priceSetForToday: !!todayHistory,
+      todayPrice: todayHistory ? parseFloat(todayHistory.pricePerGram.toString()) : null
     });
   } catch (err) {
     next(err);
