@@ -6,7 +6,7 @@ import Transaction from "../models/Transaction.mjs";
 import CustomerHolding from "../models/CustomerHolding.mjs";
 import { notifyUser } from "../utils/notifyUser.mjs";
 import { logAudit } from "../utils/logAudit.mjs";
-import { fetchGoldPriceInINR } from "../utils/fetchGoldPrice.mjs";
+import { getCurrentPriceFromDB } from "../controllers/goldPriceController.mjs";
 
 export const buyGold = async (req, res, next) => {
   const session = await mongoose.startSession();
@@ -27,8 +27,8 @@ export const buyGold = async (req, res, next) => {
       throw new Error("KYC not verified. Cannot proceed with purchase.");
     }
 
-    // ✅ Fetch current gold price (per gram)
-    const pricePerGram = await fetchGoldPriceInINR();
+    // ✅ Fetch current gold price (per gram) from database
+    const pricePerGram = await getCurrentPriceFromDB();
     const totalAmount = parseFloat((pricePerGram * grams).toFixed(2));
 
     // ✅ Check gold inventory
@@ -59,11 +59,11 @@ export const buyGold = async (req, res, next) => {
     }).session(session);
 
     if (holding) {
-      const totalGrams = holding.grams + grams;
+      const totalGrams = holding.totalGrams + grams;
       const weightedAvg =
-        (holding.grams * holding.averagePricePerGram + totalAmount) / totalGrams;
+        (holding.totalGrams * holding.averagePricePerGram + totalAmount) / totalGrams;
 
-      holding.grams = parseFloat(totalGrams.toFixed(4));
+      holding.totalGrams = parseFloat(totalGrams.toFixed(4));
       holding.averagePricePerGram = parseFloat(weightedAvg.toFixed(2));
 
       await holding.save({ session });
@@ -72,7 +72,7 @@ export const buyGold = async (req, res, next) => {
         [
           {
             customerId,
-            grams: parseFloat(grams.toFixed(4)),
+            totalGrams: parseFloat(grams.toFixed(4)),
             averagePricePerGram: pricePerGram,
             isDeleted: false,
           },
@@ -137,8 +137,8 @@ export const sellGold = async (req, res, next) => {
       throw new Error("Insufficient gold balance to sell");
     }
 
-    // ✅ Fetch live gold price
-    const pricePerGram = await fetchGoldPriceInINR();
+    // ✅ Fetch current gold price from database
+    const pricePerGram = await getCurrentPriceFromDB();
     const totalAmount = parseFloat((pricePerGram * grams).toFixed(2));
 
     // ✅ Record the sell transaction
