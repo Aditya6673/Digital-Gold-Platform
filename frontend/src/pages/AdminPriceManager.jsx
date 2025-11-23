@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FaCoins, FaSync, FaClock, FaArrowUp, FaArrowDown } from 'react-icons/fa'
+import { FaCoins, FaClock, FaArrowUp, FaArrowDown, FaEdit } from 'react-icons/fa'
 import { formatINR } from '../utils/currency.jsx'
 import api from '../lib/axios'
 import { useToast } from '../context/ToastContext'
@@ -13,8 +13,6 @@ const AdminPriceManager = () => {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [manualPrice, setManualPrice] = useState('')
-  const [discount, setDiscount] = useState('')
-  const [discountedPrice, setDiscountedPrice] = useState(null)
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
@@ -41,62 +39,27 @@ const AdminPriceManager = () => {
     }
   }
 
-  const updatePriceFromAPI = async () => {
+  const setPriceForToday = async () => {
+    if (!manualPrice || isNaN(manualPrice) || parseFloat(manualPrice) <= 0) {
+      showError('Please enter a valid price')
+      return
+    }
+    
     setUpdating(true)
     try {
-      const response = await api.post('/api/gold/update-from-api')
+      const response = await api.post('/api/gold/update-price', { price: parseFloat(manualPrice) })
       setCurrentPrice(response.data.price)
       setPriceChange({
         amount: response.data.changeAmount || 0,
         direction: response.data.direction || 'No change'
       })
       setLastUpdated(response.data.lastUpdated)
-      showSuccess('Price updated from Muthoot Finance API successfully!')
-      fetchPriceData() // Refresh all data
-    } catch (error) {
-      console.error('Error updating price from API:', error)
-      showError('Failed to update price from API')
-    } finally {
-      setUpdating(false)
-    }
-  }
-
-  const updatePriceManually = async () => {
-    if (!manualPrice || isNaN(manualPrice)) return
-    
-    setUpdating(true)
-    try {
-      const response = await api.post('/api/gold/update-price', { price: parseFloat(manualPrice) })
-      setCurrentPrice(response.data.price)
-      setLastUpdated(response.data.lastUpdated)
       setManualPrice('')
+      showSuccess('Price set successfully for today!')
       fetchPriceData() // Refresh all data
     } catch (error) {
-      console.error('Error updating price manually:', error)
-    } finally {
-      setUpdating(false)
-    }
-  }
-
-  const applyDiscount = async () => {
-    if (!discount || isNaN(discount) || parseFloat(discount) > 100) return
-
-    const discountAmount = (parseFloat(discount) / 100) * currentPrice
-    const discountedPrice = currentPrice - discountAmount
-
-    setDiscountedPrice(discountedPrice)
-
-    setUpdating(true)
-    try {
-      const response = await api.post('/api/gold/update-price', { price: discountedPrice })
-      setCurrentPrice(response.data.price)
-      setLastUpdated(response.data.lastUpdated)
-      setDiscount('') // Clear discount input
-      fetchPriceData() // Refresh all data
-      showSuccess('Discount applied and price updated successfully!')
-    } catch (error) {
-      showError('Error applying discount')
-      console.error('Error applying discount:', error)
+      console.error('Error setting price:', error)
+      showError(error.response?.data?.message || 'Failed to set price')
     } finally {
       setUpdating(false)
     }
@@ -136,7 +99,7 @@ const AdminPriceManager = () => {
           <h1 className="font-playfair text-4xl font-bold text-bronze-primary mb-2">
             Price Manager
           </h1>
-          <p className="text-gray-600">Manage gold prices and update from external APIs</p>
+          <p className="text-gray-600">Manage gold prices manually and view price history</p>
         </motion.div>
 
         {/* Current Price Card */}
@@ -151,11 +114,9 @@ const AdminPriceManager = () => {
               <FaCoins className="text-5xl text-gold-primary mr-4" />
               <div>
                 <h2 className="font-playfair text-4xl font-bold text-bronze-primary">
-                  {discountedPrice !== null ? formatINR(discountedPrice) : formatINR(currentPrice)}
+                  {formatINR(currentPrice)}
                 </h2>
-                {discountedPrice !== null && (
-                  <div className="text-green-700 text-sm font-semibold mt-1">Discounted Price</div>
-                )}
+                <p className="text-sm text-gray-600 mt-1">Per Gram (24K Gold)</p>
                 <div className="flex items-center justify-center space-x-2 mt-2">
                   {priceChange.amount > 0 && (
                     <>
@@ -192,60 +153,111 @@ const AdminPriceManager = () => {
               <FaClock />
               <span>Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleString() : 'Never'}</span>
             </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={updatePriceFromAPI}
-                disabled={updating}
-                className="gold-button text-white px-6 py-3 rounded-lg flex items-center space-x-2 disabled:opacity-50"
-              >
-                <FaSync className={updating ? 'animate-spin' : ''} />
-                <span>{updating ? 'Updating...' : 'Update from Muthoot Finance'}</span>
-              </button>
-            </div>
           </div>
         </motion.div>
 
-        {/* Discount Option */}
+        {/* Set Price for Today */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
           className="gold-card p-6 rounded-xl mb-8"
         >
-          <h2 className="font-playfair text-2xl font-bold text-bronze-primary mb-4">
-            Discount Option
+          <h2 className="font-playfair text-2xl font-bold text-bronze-primary mb-4 flex items-center">
+            <FaEdit className="mr-2" />
+            Set Price for Today
           </h2>
           <div className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Discount (%)
+                Price per Gram (₹)
               </label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
-                max="100"
-                value={discount || ''}
-                onChange={e => setDiscount(e.target.value)}
-                placeholder="Enter discount percentage..."
+                value={manualPrice}
+                onChange={e => setManualPrice(e.target.value)}
+                placeholder="Enter price per gram..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold-primary"
               />
+              {currentPrice > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Current price: {formatINR(currentPrice)}
+                </p>
+              )}
             </div>
             <button
-              onClick={applyDiscount}
-              disabled={updating || !discount}
-              className="gold-button text-white px-6 py-2 rounded-lg disabled:opacity-50"
+              onClick={setPriceForToday}
+              disabled={updating || !manualPrice}
+              className="gold-button text-white px-6 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50"
             >
-              Apply Discount
+              <FaCoins />
+              <span>{updating ? 'Setting...' : 'Set Price'}</span>
             </button>
           </div>
-          {discountedPrice !== null && (
-            <div className="mt-4 text-lg font-semibold text-green-700">
-              Discounted Price: {formatINR(discountedPrice)}
-            </div>
-          )}
         </motion.div>
+
+        {/* Price History */}
+        {priceHistory.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="gold-card p-6 rounded-xl"
+          >
+            <h2 className="font-playfair text-2xl font-bold text-bronze-primary mb-4">
+              Price History
+            </h2>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-300">
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Date</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Price</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Change</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Source</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {priceHistory.slice(0, 10).map((entry, index) => (
+                    <tr key={entry._id || index} className="border-b border-gray-200 hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        {new Date(entry.date || entry.timestamp).toLocaleDateString()}
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-bronze-primary">
+                        {formatINR(entry.price)}
+                      </td>
+                      <td className="py-3 px-4">
+                        {entry.changeAmount > 0 && (
+                          <span className={`flex items-center space-x-1 ${
+                            entry.direction === 'Increase' ? 'text-green-600' : 
+                            entry.direction === 'Decrease' ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            {entry.direction === 'Increase' ? (
+                              <FaArrowUp />
+                            ) : entry.direction === 'Decrease' ? (
+                              <FaArrowDown />
+                            ) : null}
+                            <span>{formatINR(entry.changeAmount)} ({entry.direction})</span>
+                          </span>
+                        )}
+                        {entry.changeAmount === 0 && (
+                          <span className="text-gray-500">No change</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-1 bg-gray-100 rounded text-sm">
+                          {entry.source || 'Manual'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   )
