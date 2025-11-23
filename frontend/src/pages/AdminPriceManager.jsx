@@ -315,10 +315,10 @@ const AdminPriceManager = () => {
               </table>
             </div>
           </motion.div>
-          )}
+        )}
       </div>
     </div>
   )
 }
 
-export default AdminPriceManager 
+export default AdminPriceManager
