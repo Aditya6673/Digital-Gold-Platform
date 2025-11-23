@@ -6,6 +6,7 @@ import { formatINR } from '../utils/currency.jsx'
 import { useToast } from '../context/ToastContext'
 import LoadingSpinner from '../components/LoadingSpinner'
 import api from '../lib/axios'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 
 const Dashboard = () => {
   const { user } = useAuth()
@@ -15,6 +16,7 @@ const Dashboard = () => {
   const [portfolioValue, setPortfolioValue] = useState(0)
   const [holdings, setHoldings] = useState([])
   const [recentTransactions, setRecentTransactions] = useState([])
+  const [priceHistory, setPriceHistory] = useState([])
   const [loading, setLoading] = useState(true)
   const [modalType, setModalType] = useState(null) // 'buy' or 'sell' or null
   const [inputType, setInputType] = useState('grams') // 'grams' or 'inr'
@@ -34,6 +36,33 @@ const Dashboard = () => {
         amount: priceResponse.data.changeAmount || 0,
         direction: priceResponse.data.direction || 'No change'
       })
+
+      // Fetch price history for chart
+      try {
+        const historyResponse = await api.get('/api/gold/price-history/public?limit=30')
+        console.log('Price history response:', historyResponse.data)
+        if (historyResponse.data && historyResponse.data.history && historyResponse.data.history.length > 0) {
+          const historyData = historyResponse.data.history.map(item => {
+            // Handle date - it might be a string or Date object
+            const dateObj = item.date instanceof Date ? item.date : new Date(item.date)
+            return {
+              date: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+              price: parseFloat(item.price) || 0,
+              fullDate: dateObj
+            }
+          })
+          setPriceHistory(historyData)
+          console.log('Formatted history data:', historyData)
+        } else {
+          console.log('No price history data available')
+          setPriceHistory([])
+        }
+      } catch (historyError) {
+        console.error('Error fetching price history:', historyError)
+        console.error('Error details:', historyError.response?.data || historyError.message)
+        // Set empty array if history fetch fails
+        setPriceHistory([])
+      }
 
       // Fetch portfolio data
               const portfolioResponse = await api.get('/api/holdings/me')
@@ -180,6 +209,62 @@ const Dashboard = () => {
             Welcome back, {user?.name}!
           </h1>
           <p className="text-gray-600">Here's your investment overview</p>
+        </motion.div>
+
+        {/* Price Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="gold-card p-6 rounded-xl mb-8"
+        >
+          <h2 className="font-playfair text-2xl font-bold text-bronze-primary mb-4 flex items-center">
+            <FaChartLine className="mr-2" />
+            Gold Price Trend
+          </h2>
+          {priceHistory.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={priceHistory} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis 
+                  stroke="#6b7280"
+                  style={{ fontSize: '12px' }}
+                  tickFormatter={(value) => `Rs ${value.toLocaleString()}`}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '10px'
+                  }}
+                  formatter={(value) => [`Rs ${value.toLocaleString()}`, 'Price']}
+                  labelStyle={{ color: '#374151', fontWeight: 'bold' }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="price" 
+                  stroke="#d4af37" 
+                  strokeWidth={2}
+                  dot={{ fill: '#d4af37', r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Price per Gram"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="text-center py-12">
+              <FaChartLine className="text-4xl text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-600 mb-2">No price history available yet.</p>
+              <p className="text-sm text-gray-500">Price history will appear once prices are set by the admin.</p>
+            </div>
+          )}
         </motion.div>
 
         {/* Stats Cards */}

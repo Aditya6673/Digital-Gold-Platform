@@ -1,6 +1,7 @@
 // 👇 Admin Controller - minor formatting + comments (no logic change)
 import User from "../models/User.mjs";
 import CustomerHolding from "../models/CustomerHolding.mjs";
+import AuditLog from "../models/AuditLog.mjs";
 import { logAudit } from "../utils/logAudit.mjs";
 import { notifyUser } from "../utils/notifyUser.mjs";
 import bcrypt from "bcryptjs";

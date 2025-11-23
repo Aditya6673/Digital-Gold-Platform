@@ -78,12 +78,13 @@ export const login = async (req, res, next) => {
     const user = await User.findOne({ email });
     if (!user || user.isDeleted) return res.status(401).json({ message: 'Invalid credentials' });
 
-    // Check if admin has WebAuthn enabled - if so, require WebAuthn instead of password
-    if (user.role === 'admin' && user.webauthnEnabled) {
-      return res.status(403).json({ 
-        message: 'WebAuthn authentication required for admin account',
-        requiresWebAuthn: true 
-      });
+    // Validate password
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required' });
+    }
+
+    if (!user.passwordHash) {
+      return res.status(401).json({ message: 'Password not set for this account' });
     }
 
     const match = await bcrypt.compare(password, user.passwordHash);

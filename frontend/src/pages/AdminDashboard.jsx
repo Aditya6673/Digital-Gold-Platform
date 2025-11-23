@@ -243,7 +243,7 @@ const AdminDashboard = () => {
               onClick={() => navigateWithPasscode('/admin/price')}
             >
               <FaCoins className="text-2xl mx-auto mb-2" />
-              <span className="font-semibold">Update Prices</span>
+              <span className="font-semibold">Set Prices</span>
             </button>
             <button
               className="gold-button text-white p-4 rounded-lg text-center hover:transform hover:scale-105 transition-transform"
