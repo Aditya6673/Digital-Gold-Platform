@@ -27,6 +27,19 @@ const Dashboard = () => {
   const [modalLoading, setModalLoading] = useState(false)
   const [cart, setCart] = useState(null)
 
+  const formatDateTime = (value) => {
+    if (!value) return 'N/A'
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return 'N/A'
+    return date.toLocaleString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
   useEffect(() => {
     fetchDashboardData()
   }, [])
@@ -68,9 +81,72 @@ const Dashboard = () => {
       // Fetch portfolio data
       try {
         const portfolioResponse = await api.get('/api/holdings/me')
-        setHoldings(portfolioResponse.data.holdings || [])
-        setPortfolioValue(portfolioResponse.data.totalValue || 0)
-        setTotalGrams(portfolioResponse.data.totalGrams || 0)
+        const apiHoldings = portfolioResponse.data.holdings || []
+
+        const formattedHoldings = apiHoldings.map((holding, index) => {
+          const quantity =
+            typeof holding.quantity === 'number'
+              ? holding.quantity
+              : typeof holding.totalGrams === 'number'
+              ? holding.totalGrams
+              : 0
+
+          const avgBuyPrice =
+            typeof holding.avgBuyPricePerGram === 'number'
+              ? holding.avgBuyPricePerGram
+              : typeof holding.averagePricePerGram === 'number'
+              ? holding.averagePricePerGram
+              : 0
+
+          const priceForCurrentValue =
+            typeof holding.currentPricePerGram === 'number' && holding.currentPricePerGram > 0
+              ? holding.currentPricePerGram
+              : priceResponse.data?.price > 0
+              ? priceResponse.data.price
+              : avgBuyPrice
+
+          const investedAmount =
+            typeof holding.investedAmount === 'number'
+              ? holding.investedAmount
+              : quantity * avgBuyPrice
+
+          const currentValue =
+            typeof holding.currentValue === 'number'
+              ? holding.currentValue
+              : typeof holding.value === 'number'
+              ? holding.value
+              : quantity * priceForCurrentValue
+
+          return {
+            id: holding._id || holding.id || index,
+            type: holding.type || 'Gold',
+            quantity: parseFloat(Number(quantity).toFixed(4)),
+            currentValue: parseFloat(Number(currentValue).toFixed(2)),
+            investedAmount: parseFloat(Number(investedAmount).toFixed(2)),
+            avgBuyPricePerGram: parseFloat(Number(avgBuyPrice).toFixed(2)),
+            purchaseDate:
+              holding.purchaseDate ||
+              formatDateTime(
+                holding.updatedAt ||
+                  holding.lastTransactionAt ||
+                  holding.createdAt
+              )
+          }
+        })
+
+        const derivedTotalValue =
+          typeof portfolioResponse.data.totalValue === 'number'
+            ? portfolioResponse.data.totalValue
+            : formattedHoldings.reduce((sum, holding) => sum + holding.currentValue, 0)
+
+        const derivedTotalGrams =
+          typeof portfolioResponse.data.totalGrams === 'number'
+            ? portfolioResponse.data.totalGrams
+            : formattedHoldings.reduce((sum, holding) => sum + holding.quantity, 0)
+
+        setHoldings(formattedHoldings)
+        setPortfolioValue(parseFloat(Number(derivedTotalValue).toFixed(2)))
+        setTotalGrams(parseFloat(Number(derivedTotalGrams).toFixed(4)))
       } catch (portfolioError) {
         // Portfolio data might require KYC, handle gracefully
         if (portfolioError.response?.status !== 403) {
@@ -81,7 +157,31 @@ const Dashboard = () => {
       // Fetch recent transactions
       try {
         const transactionsResponse = await api.get('/api/transactions/me')
-        setRecentTransactions(transactionsResponse.data.transactions || [])
+        const apiTransactions = transactionsResponse.data.transactions || []
+
+        const formattedTransactions = apiTransactions.map((transaction, index) => {
+          const isBuy = transaction.type?.toLowerCase() === 'buy'
+          const amount =
+            typeof transaction.totalAmount === 'number'
+              ? transaction.totalAmount
+              : transaction.amount || 0
+
+          const grams =
+            typeof transaction.grams === 'number'
+              ? transaction.grams
+              : transaction.quantity || 0
+
+          return {
+            id: transaction._id || index,
+            type: transaction.type ? transaction.type.toUpperCase() : 'N/A',
+            amount: parseFloat(Number(amount).toFixed(2)),
+            quantity: parseFloat(Number(grams).toFixed(4)),
+            date: formatDateTime(transaction.transactionTime || transaction.createdAt),
+            isBuy
+          }
+        })
+
+        setRecentTransactions(formattedTransactions)
       } catch (transactionsError) {
         // Transactions require KYC, handle gracefully
         if (transactionsError.response?.status !== 403) {
@@ -423,11 +523,19 @@ const Dashboard = () => {
                   <div key={index} className="flex justify-between items-center p-4 bg-white rounded-lg">
                     <div>
                       <p className="font-semibold text-gray-800">{holding.type}</p>
-                      <p className="text-sm text-gray-600">{holding.quantity} grams</p>
+                      <p className="text-sm text-gray-600">
+                        {holding.quantity}g @ {formatINR(holding.avgBuyPricePerGram)}/g
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Invested: {formatINR(holding.investedAmount)}
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gold-primary">{formatINR(holding.value)}</p>
-                      <p className="text-sm text-gray-600">{holding.purchaseDate}</p>
+                      <p className="font-semibold text-gold-primary">
+                        {formatINR(holding.currentValue)}
+                      </p>
+                      <p className="text-sm text-gray-600">Current value</p>
+                      <p className="text-xs text-gray-500">{holding.purchaseDate}</p>
                     </div>
                   </div>
                 ))}

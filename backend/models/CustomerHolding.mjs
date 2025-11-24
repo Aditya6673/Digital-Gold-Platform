@@ -4,9 +4,9 @@ import mongoose from "mongoose";
 const customerHoldingSchema = new mongoose.Schema(
   {
     customerId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    totalGrams: Number,
-    averagePricePerGram: Number,
-    totalInvested: Number,
+    totalGrams: { type: Number, default: 0 },
+    averagePricePerGram: { type: Number, default: 0 },
+    totalInvested: { type: Number, default: 0 },
     isDeleted: { type: Boolean, default: false },
     lastTransactionAt: Date,
   },

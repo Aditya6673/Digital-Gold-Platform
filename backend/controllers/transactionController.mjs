@@ -128,6 +128,14 @@ export const sellGold = async (req, res, next) => {
     // ✅ Update holdings after sale
     holding.totalGrams = parseFloat((holding.totalGrams - grams).toFixed(4));
     holding.lastTransactionAt = new Date();
+    if (holding.totalGrams <= 0) {
+      holding.totalGrams = 0;
+      holding.totalInvested = 0;
+    } else {
+      holding.totalInvested = parseFloat(
+        (holding.totalGrams * holding.averagePricePerGram).toFixed(2)
+      );
+    }
     await holding.save({ session });
 
     // ✅ Add sold gold back to inventory

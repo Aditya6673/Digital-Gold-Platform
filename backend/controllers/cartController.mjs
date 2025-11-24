@@ -193,6 +193,10 @@ export const checkoutCart = async (req, res, next) => {
 
       holding.totalGrams = parseFloat(totalGrams.toFixed(4));
       holding.averagePricePerGram = parseFloat(weightedAvg.toFixed(2));
+      holding.totalInvested = parseFloat(
+        (holding.totalGrams * holding.averagePricePerGram).toFixed(2)
+      );
+      holding.lastTransactionAt = new Date();
 
       await holding.save({ session });
     } else {
@@ -202,7 +206,11 @@ export const checkoutCart = async (req, res, next) => {
             customerId,
             totalGrams: parseFloat(cart.grams.toFixed(4)),
             averagePricePerGram: currentPricePerGram,
+            totalInvested: parseFloat(
+              (cart.grams * currentPricePerGram).toFixed(2)
+            ),
             isDeleted: false,
+            lastTransactionAt: new Date(),
           },
         ],
         { session }
