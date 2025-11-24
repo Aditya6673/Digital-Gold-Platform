@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Navbar from './components/Navbar'
+import Footer from './components/Footer'
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
@@ -23,12 +24,13 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <ToastProvider>
-          <div className="min-h-screen bg-beige-light">
+          <div className="min-h-screen bg-beige-light flex flex-col">
             <Navbar />
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
+              className="flex-grow"
             >
               <Routes>
                 <Route path="/" element={<Home />} />
@@ -47,6 +49,7 @@ function App() {
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </motion.div>
+            <Footer />
           </div>
         </ToastProvider>
       </AuthProvider>

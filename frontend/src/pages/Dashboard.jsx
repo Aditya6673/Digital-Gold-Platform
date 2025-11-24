@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FaCoins, FaChartLine, FaWallet, FaHistory } from 'react-icons/fa'
+import { FaCoins, FaChartLine, FaWallet, FaHistory, FaArrowUp, FaArrowDown } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
 import { formatINR } from '../utils/currency.jsx'
 import { useToast } from '../context/ToastContext'
@@ -15,6 +15,7 @@ const Dashboard = () => {
   const [priceChange, setPriceChange] = useState({ amount: 0, direction: 'No change' })
   const [portfolioValue, setPortfolioValue] = useState(0)
   const [holdings, setHoldings] = useState([])
+  const [totalGrams, setTotalGrams] = useState(0)
   const [recentTransactions, setRecentTransactions] = useState([])
   const [priceHistory, setPriceHistory] = useState([])
   const [loading, setLoading] = useState(true)
@@ -40,7 +41,6 @@ const Dashboard = () => {
       // Fetch price history for chart
       try {
         const historyResponse = await api.get('/api/gold/price-history/public?limit=30')
-        console.log('Price history response:', historyResponse.data)
         if (historyResponse.data && historyResponse.data.history && historyResponse.data.history.length > 0) {
           const historyData = historyResponse.data.history.map(item => {
             // Handle date - it might be a string or Date object
@@ -52,9 +52,7 @@ const Dashboard = () => {
             }
           })
           setPriceHistory(historyData)
-          console.log('Formatted history data:', historyData)
         } else {
-          console.log('No price history data available')
           setPriceHistory([])
         }
       } catch (historyError) {
@@ -65,13 +63,28 @@ const Dashboard = () => {
       }
 
       // Fetch portfolio data
-              const portfolioResponse = await api.get('/api/holdings/me')
-      setHoldings(portfolioResponse.data.holdings || [])
-      setPortfolioValue(portfolioResponse.data.totalValue || 0)
+      try {
+        const portfolioResponse = await api.get('/api/holdings/me')
+        setHoldings(portfolioResponse.data.holdings || [])
+        setPortfolioValue(portfolioResponse.data.totalValue || 0)
+        setTotalGrams(portfolioResponse.data.totalGrams || 0)
+      } catch (portfolioError) {
+        // Portfolio data might require KYC, handle gracefully
+        if (portfolioError.response?.status !== 403) {
+          console.error('Error fetching portfolio data:', portfolioError)
+        }
+      }
 
       // Fetch recent transactions
-              const transactionsResponse = await api.get('/api/transactions/me')
-      setRecentTransactions(transactionsResponse.data.transactions || [])
+      try {
+        const transactionsResponse = await api.get('/api/transactions/me')
+        setRecentTransactions(transactionsResponse.data.transactions || [])
+      } catch (transactionsError) {
+        // Transactions require KYC, handle gracefully
+        if (transactionsError.response?.status !== 403) {
+          console.error('Error fetching transactions:', transactionsError)
+        }
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -323,7 +336,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-gray-600 text-sm">Total Holdings</p>
-                <p className="text-2xl font-bold text-gold-primary">{holdings.length}</p>
+                <p className="text-2xl font-bold text-gold-primary">{totalGrams.toFixed(4)}g</p>
               </div>
               <FaChartLine className="text-3xl text-gold-primary" />
             </div>
