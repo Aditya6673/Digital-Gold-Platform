@@ -1,15 +1,65 @@
-import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import User from '../models/User.mjs';
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
+import {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse,
+} from "@simplewebauthn/server";
+import User from "../models/User.mjs";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 dotenv.config();
 
-const rpName = 'Digital Gold Platform';
+const rpName = "Digital Gold Platform";
 const rpID = process.env.WEBAUTHN_RP_ID;
 const origin = process.env.WEBAUTHN_ORIGIN;
 
 const createAccessToken = (user) => {
-  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN,
+  });
+};
+
+const bufferToBase64URLString = (value) => {
+  if (!value) return value;
+  if (typeof value === "string") return value;
+  if (Buffer.isBuffer(value)) return value.toString("base64url");
+  if (value instanceof ArrayBuffer) return Buffer.from(value).toString("base64url");
+  if (ArrayBuffer.isView(value)) {
+    return Buffer.from(value.buffer, value.byteOffset, value.byteLength).toString("base64url");
+  }
+  return value;
+};
+
+const serializeRegistrationOptions = (options) => {
+  if (!options) return options;
+  return {
+    ...options,
+    challenge: bufferToBase64URLString(options.challenge),
+    user: {
+      ...options.user,
+      id: bufferToBase64URLString(options.user?.id),
+    },
+    excludeCredentials: Array.isArray(options.excludeCredentials)
+      ? options.excludeCredentials.map((cred) => ({
+          ...cred,
+          id: bufferToBase64URLString(cred.id),
+        }))
+      : [],
+  };
+};
+
+const serializeAuthenticationOptions = (options) => {
+  if (!options) return options;
+  return {
+    ...options,
+    challenge: bufferToBase64URLString(options.challenge),
+    allowCredentials: Array.isArray(options.allowCredentials)
+      ? options.allowCredentials.map((cred) => ({
+          ...cred,
+          id: bufferToBase64URLString(cred.id),
+        }))
+      : [],
+  };
 };
 
 // Generate registration options for WebAuthn
@@ -35,7 +85,7 @@ export const generateRegistrationOptionsHandler = async (req, res, next) => {
       timeout: 60000,
       attestationType: 'none',
       excludeCredentials: user.webauthnCredentials?.map(cred => ({
-        id: Buffer.from(cred.credentialID, 'base64url'),
+        id: cred.credentialID,
         type: 'public-key',
         transports: ['usb', 'nfc', 'ble', 'internal']
       })) || [],
@@ -44,7 +94,7 @@ export const generateRegistrationOptionsHandler = async (req, res, next) => {
         userVerification: 'preferred',
         requireResidentKey: false
       },
-      supportedAlgorithmIDs: [-7, -257]
+      supportedAlgorithmIDs: [-7, -257],
     });
 
     // Store challenge in user session or temporary storage
@@ -52,7 +102,7 @@ export const generateRegistrationOptionsHandler = async (req, res, next) => {
     user.webauthnChallenge = options.challenge;
     await user.save();
 
-    res.json(options);
+    res.json(serializeRegistrationOptions(options));
   } catch (err) {
     next(err);
   }
@@ -155,7 +205,7 @@ export const generateAuthenticationOptionsHandler = async (req, res, next) => {
     const options = await generateAuthenticationOptions({
       rpID,
       allowCredentials: user.webauthnCredentials.map(cred => ({
-        id: Buffer.from(cred.credentialID, 'base64url'),
+        id: cred.credentialID,
         type: 'public-key',
         transports: ['usb', 'nfc', 'ble', 'internal']
       })),
@@ -167,7 +217,7 @@ export const generateAuthenticationOptionsHandler = async (req, res, next) => {
     user.webauthnChallenge = options.challenge;
     await user.save();
 
-    res.json(options);
+    res.json(serializeAuthenticationOptions(options));
   } catch (err) {
     next(err);
   }
