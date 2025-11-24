@@ -159,19 +159,98 @@ export const verifyRegistrationHandler = async (req, res, next) => {
     const { verified, registrationInfo } = verification;
 
     if (verified && registrationInfo) {
-      // Store the credential
-      const credentialID = Buffer.from(registrationInfo.credentialID).toString('base64url');
+      // Helper to convert many possible shapes into a Buffer (returns null if not possible)
+      const toBuffer = (v) => {
+        try {
+          if (!v && v !== 0) return null;
+          if (Buffer.isBuffer(v)) return Buffer.from(v);
+          if (v instanceof ArrayBuffer) return Buffer.from(v);
+          if (ArrayBuffer.isView(v)) return Buffer.from(v.buffer, v.byteOffset, v.byteLength);
+          if (typeof v === 'string') {
+            // Try base64url, then base64, then utf8
+            try { return Buffer.from(v, 'base64url'); } catch (e) {}
+            try { return Buffer.from(v, 'base64'); } catch (e) {}
+            try { return Buffer.from(v, 'utf8'); } catch (e) {}
+          }
+          return null;
+        } catch (e) {
+          return null;
+        }
+      };
+
+      // Attempt to build credentialID buffer from registrationInfo or request body
+      let credentialIDBuf = toBuffer(registrationInfo.credentialID);
+      if (!credentialIDBuf) {
+        credentialIDBuf = toBuffer(registrationInfo.credential?.id || registrationInfo.credential?.credentialID);
+      }
+      if (!credentialIDBuf && body?.rawId) {
+        credentialIDBuf = toBuffer(body.rawId);
+      }
+      if (!credentialIDBuf && body?.id) {
+        credentialIDBuf = toBuffer(body.id);
+      }
+
+      if (!credentialIDBuf) {
+        console.error('No credential ID found in registrationInfo or request body');
+        return res.status(400).json({ message: 'No credential ID found in registration response' });
+      }
+
+      // Attempt to build credentialPublicKey buffer from multiple possible locations
+      let credentialPublicKeyBuf = toBuffer(registrationInfo.credentialPublicKey);
+      if (!credentialPublicKeyBuf && registrationInfo.credentialPublicKeyBytes) {
+        credentialPublicKeyBuf = toBuffer(registrationInfo.credentialPublicKeyBytes);
+      }
+
+      // Some verifier versions put the key inside registrationInfo.credential (object) in various shapes
+      if (!credentialPublicKeyBuf && registrationInfo.credential) {
+        const cred = registrationInfo.credential;
+        // Common property names that might contain the COSE public key
+        const candidateKeys = ['publicKey', 'credentialPublicKey', 'publicKeyBytes', 'rawPublicKey', 'public_key', 'publicKeyCOSE'];
+        for (const k of candidateKeys) {
+          if (cred[k]) {
+            credentialPublicKeyBuf = toBuffer(cred[k]);
+            if (credentialPublicKeyBuf) break;
+          }
+        }
+        // Fallback: scan all properties for a binary-like value
+        if (!credentialPublicKeyBuf) {
+          for (const [k, v] of Object.entries(cred)) {
+            credentialPublicKeyBuf = toBuffer(v);
+            if (credentialPublicKeyBuf) break;
+          }
+        }
+      }
+
+      // Final fallback: the attestationObject may contain the public key (decoding would be required)
+      if (!credentialPublicKeyBuf && body?.response?.attestationObject) {
+        // We won't parse CBOR here (complex); log for diagnosis so we can add a parser if needed
+        console.error('Attestation object present but public key not extracted automatically. Attestation object length:',
+          (typeof body.response.attestationObject === 'string') ? Buffer.from(body.response.attestationObject, 'base64').length : null);
+      }
+
+      if (!credentialPublicKeyBuf) {
+        console.error('No credential public key found in registration info');
+        try {
+          console.error('registrationInfo keys:', Object.keys(registrationInfo));
+          if (registrationInfo.credential) console.error('registrationInfo.credential keys:', Object.keys(registrationInfo.credential));
+          console.error('body keys:', Object.keys(body || {}));
+          console.error('body.response keys:', body?.response ? Object.keys(body.response) : []);
+        } catch (logErr) {
+          console.error('Error while logging registration debug info:', logErr);
+        }
+        return res.status(400).json({ message: 'No credential public key found in registration info' });
+      }
+
+      const credentialID = credentialIDBuf.toString('base64url');
       const newCredential = {
         credentialID: credentialID,
-        credentialPublicKey: Buffer.from(registrationInfo.credentialPublicKey).toString('base64'),
-        counter: registrationInfo.counter,
+        credentialPublicKey: credentialPublicKeyBuf.toString('base64'),
+        counter: registrationInfo.counter || 0,
         deviceType: body.response?.authenticatorAttachment || 'unknown',
         registeredAt: new Date()
       };
 
-      if (!user.webauthnCredentials) {
-        user.webauthnCredentials = [];
-      }
+      if (!user.webauthnCredentials) user.webauthnCredentials = [];
       user.webauthnCredentials.push(newCredential);
       user.webauthnEnabled = true;
       user.webauthnChallenge = undefined;
