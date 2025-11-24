@@ -2,13 +2,55 @@ import { startRegistration, startAuthentication } from '@simplewebauthn/browser'
 import api from '../lib/axios';
 
 const bufferToBase64URLString = (buffer) => {
-  if (!buffer) return null;
-  const bytes = new Uint8Array(buffer);
+  if (!buffer && buffer !== 0) return null;
+  const bytes = buffer instanceof ArrayBuffer
+    ? new Uint8Array(buffer)
+    : buffer instanceof Uint8Array
+    ? buffer
+    : buffer && ArrayBuffer.isView(buffer)
+    ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength)
+    : null;
+  if (!bytes) return null;
   let str = '';
-  bytes.forEach((b) => {
-    str += String.fromCharCode(b);
-  });
+  for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
   return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+
+// Ensure an input (string or ArrayBuffer/TypedArray) becomes a base64url string.
+const normalizeBase64Url = (input) => {
+  if (input === null || input === undefined) return null;
+
+  // If already an ArrayBuffer or TypedArray, convert directly
+  if (input instanceof ArrayBuffer || ArrayBuffer.isView(input)) {
+    return bufferToBase64URLString(input);
+  }
+
+  // If it's a string, try to detect form and normalize
+  if (typeof input === 'string') {
+    let s = input;
+
+    // Remove any data: prefix
+    const commaIdx = s.indexOf(',');
+    if (commaIdx !== -1) s = s.slice(commaIdx + 1);
+
+    // If contains base64 characters '+' or '/' or '=' it's standard base64 — convert to base64url
+    if (/[+/=]/.test(s)) {
+      return s.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    // If it already looks like base64url (alphanumeric, - or _), accept it
+    if (/^[A-Za-z0-9_-]+$/.test(s)) return s;
+
+    // As a fallback, treat string as binary and encode
+    try {
+      const bytes = new Uint8Array(Array.from(s).map((ch) => ch.charCodeAt(0)));
+      return bufferToBase64URLString(bytes);
+    } catch (e) {
+      return s;
+    }
+  }
+
+  return null;
 };
 
 /**
@@ -44,16 +86,18 @@ export const registerWebAuthn = async () => {
     const credential = await startRegistration(options);
 
     const payload = {
-      id: credential.id,
-      rawId: bufferToBase64URLString(credential.rawId),
+      id: normalizeBase64Url(credential.rawId) || normalizeBase64Url(credential.id),
+      rawId: normalizeBase64Url(credential.rawId) || normalizeBase64Url(credential.id),
       type: credential.type,
       authenticatorAttachment: credential.authenticatorAttachment,
       response: {
-        clientDataJSON: bufferToBase64URLString(credential.response.clientDataJSON),
-        attestationObject: bufferToBase64URLString(credential.response.attestationObject),
+        clientDataJSON: normalizeBase64Url(credential.response.clientDataJSON),
+        attestationObject: normalizeBase64Url(credential.response.attestationObject),
         transports: credential.response?.getTransports?.() || []
       },
-      clientExtensionResults: credential.getClientExtensionResults()
+      clientExtensionResults: (typeof credential.getClientExtensionResults === 'function'
+        ? credential.getClientExtensionResults()
+        : credential.clientExtensionResults || {})
     };
 
     // Verify registration
@@ -82,23 +126,34 @@ export const authenticateWebAuthn = async (email) => {
     const options = optionsResponse.data;
 
     // Start authentication
+    console.debug('WebAuthn - authentication options (from server):', options);
     const authenticationResponse = await startAuthentication(options);
+    console.debug('WebAuthn - authentication response (from authenticator):', authenticationResponse);
 
     const payload = {
-      id: authenticationResponse.id,
-      rawId: bufferToBase64URLString(authenticationResponse.rawId),
+      id: normalizeBase64Url(authenticationResponse.rawId) || normalizeBase64Url(authenticationResponse.id),
+      rawId: normalizeBase64Url(authenticationResponse.rawId) || normalizeBase64Url(authenticationResponse.id),
       type: authenticationResponse.type,
       authenticatorAttachment: authenticationResponse.authenticatorAttachment,
       response: {
-        clientDataJSON: bufferToBase64URLString(authenticationResponse.response.clientDataJSON),
-        authenticatorData: bufferToBase64URLString(authenticationResponse.response.authenticatorData),
-        signature: bufferToBase64URLString(authenticationResponse.response.signature),
+        clientDataJSON: normalizeBase64Url(authenticationResponse.response.clientDataJSON),
+        authenticatorData: normalizeBase64Url(authenticationResponse.response.authenticatorData),
+        signature: normalizeBase64Url(authenticationResponse.response.signature),
         userHandle: authenticationResponse.response.userHandle
-          ? bufferToBase64URLString(authenticationResponse.response.userHandle)
+          ? normalizeBase64Url(authenticationResponse.response.userHandle)
           : null
       },
-      clientExtensionResults: authenticationResponse.getClientExtensionResults()
+      clientExtensionResults: (typeof authenticationResponse.getClientExtensionResults === 'function'
+        ? authenticationResponse.getClientExtensionResults()
+        : authenticationResponse.clientExtensionResults || {})
     };
+
+    const payloadToSend = {
+      email,
+      body: payload
+    };
+
+    console.debug('WebAuthn - payload to verify (sent to server):', payloadToSend);
 
     // Verify authentication
     const verifyResponse = await api.post('/api/webauthn/authenticate/verify', {

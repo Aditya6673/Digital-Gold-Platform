@@ -131,14 +131,28 @@ export const verifyRegistrationHandler = async (req, res, next) => {
 
     let verification;
     try {
+      const expectedOriginLocal = origin || req.get('origin') || `http://localhost:3000`;
+      let expectedRPIDLocal = rpID;
+      if (!expectedRPIDLocal) {
+        try {
+          const url = new URL(expectedOriginLocal);
+          expectedRPIDLocal = url.hostname;
+        } catch (e) {
+          expectedRPIDLocal = 'localhost';
+        }
+      }
+
       verification = await verifyRegistrationResponse({
         response: body,
         expectedChallenge,
-        expectedOrigin: origin,
-        expectedRPID: rpID,
+        expectedOrigin: expectedOriginLocal,
+        expectedRPID: expectedRPIDLocal,
         requireUserVerification: true
       });
+
     } catch (error) {
+      console.error('verifyRegistrationResponse error:', error);
+      if (error && error.stack) console.error(error.stack);
       return res.status(400).json({ message: `Verification failed: ${error.message}` });
     }
 
@@ -251,6 +265,29 @@ export const verifyAuthenticationHandler = async (req, res, next) => {
       return res.status(400).json({ message: 'No authentication challenge found' });
     }
 
+    // DEBUG: log incoming authentication response and stored credentials
+    try {
+      console.log('--- WebAuthn Verify Request ---');
+      console.log('Email:', email);
+      console.log('Expected Challenge (stored):', expectedChallenge);
+      console.log('Stored credentials (IDs):', (user.webauthnCredentials || []).map(c => c.credentialID));
+
+      if (!authenticationResponse) {
+        console.log('authenticationResponse is undefined or null');
+      } else {
+        console.log('authenticationResponse keys:', Object.keys(authenticationResponse));
+        console.log('authenticationResponse.id (type):', typeof authenticationResponse.id, 'value:', authenticationResponse.id);
+        console.log('authenticationResponse.rawId (typeof):', Object.prototype.toString.call(authenticationResponse.rawId));
+        // If rawId is a string, print a short sample
+        if (typeof authenticationResponse.rawId === 'string') {
+          console.log('authenticationResponse.rawId (string sample):', authenticationResponse.rawId.slice(0, 80));
+        }
+      }
+      console.log('--- End WebAuthn Verify Request ---');
+    } catch (logErr) {
+      console.error('Error logging WebAuthn request for debug:', logErr);
+    }
+
     // Find the credential being used
     // The ID from the response is already base64url encoded
     const credentialIDFromResponse = authenticationResponse.id;
@@ -273,19 +310,47 @@ export const verifyAuthenticationHandler = async (req, res, next) => {
 
     let verification;
     try {
+      const expectedOriginLocal = origin || req.get('origin') || `http://localhost:3000`;
+      let expectedRPIDLocal = rpID;
+      if (!expectedRPIDLocal) {
+        try {
+          const url = new URL(expectedOriginLocal);
+          expectedRPIDLocal = url.hostname;
+        } catch (e) {
+          expectedRPIDLocal = 'localhost';
+        }
+      }
+
+      // DEBUG: show inputs to verifier
+      try {
+        console.log('Calling verifyAuthenticationResponse with:');
+        console.log('  expectedChallenge:', expectedChallenge);
+        console.log('  expectedOrigin:', expectedOriginLocal);
+        console.log('  expectedRPID:', expectedRPIDLocal);
+        console.log('  authenticator credentialID (base64url):', credential.credentialID);
+        console.log('  authenticator credentialPublicKey (sample):', credential.credentialPublicKey?.slice(0, 60));
+        console.log('  authenticator stored counter:', credential.counter);
+        console.log('  authenticationResponse keys:', Object.keys(authenticationResponse || {}));
+        console.log('  authenticationResponse.response keys:', authenticationResponse?.response ? Object.keys(authenticationResponse.response) : 'no response');
+      } catch (logErr) {
+        console.error('Error logging verifier inputs:', logErr);
+      }
+
       verification = await verifyAuthenticationResponse({
         response: authenticationResponse,
         expectedChallenge,
-        expectedOrigin: origin,
-        expectedRPID: rpID,
-        authenticator: {
-          credentialID: Buffer.from(credential.credentialID, 'base64url'),
-          credentialPublicKey: Buffer.from(credential.credentialPublicKey, 'base64'),
-          counter: credential.counter
+        expectedOrigin: expectedOriginLocal,
+        expectedRPID: expectedRPIDLocal,
+        credential: {
+          id: Buffer.from(credential.credentialID, 'base64url'),
+          publicKey: Buffer.from(credential.credentialPublicKey, 'base64'),
+          counter: typeof credential.counter === 'number' ? credential.counter : 0
         },
         requireUserVerification: true
       });
     } catch (error) {
+      console.error('verifyAuthenticationResponse error:', error);
+      if (error && error.stack) console.error(error.stack);
       return res.status(400).json({ message: `Authentication verification failed: ${error.message}` });
     }
 
