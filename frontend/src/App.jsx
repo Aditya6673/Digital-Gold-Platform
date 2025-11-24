@@ -8,6 +8,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Transactions from './pages/Transactions'
 import Profile from './pages/Profile'
+import Cart from './pages/Cart'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminUsers from './pages/AdminUsers'
 import AdminKYC from './pages/AdminKYC'
@@ -39,6 +40,7 @@ function App() {
                 <Route path="/register" element={<Register />} />
                 <Route path="/transactions" element={<Transactions />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/cart" element={<Cart />} />
                 {/* Admin Routes */}
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/users" element={<AdminUsers />} />

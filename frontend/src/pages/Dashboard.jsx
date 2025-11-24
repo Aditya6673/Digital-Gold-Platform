@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FaCoins, FaChartLine, FaWallet, FaHistory, FaArrowUp, FaArrowDown } from 'react-icons/fa'
+import { useNavigate } from 'react-router-dom'
+import { FaCoins, FaChartLine, FaWallet, FaHistory, FaArrowUp, FaArrowDown, FaShoppingCart } from 'react-icons/fa'
 import { useAuth } from '../context/AuthContext'
 import { formatINR } from '../utils/currency.jsx'
 import { useToast } from '../context/ToastContext'
@@ -11,6 +12,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 const Dashboard = () => {
   const { user } = useAuth()
   const { showSuccess, showError } = useToast()
+  const navigate = useNavigate()
   const [goldPrice, setGoldPrice] = useState(0)
   const [priceChange, setPriceChange] = useState({ amount: 0, direction: 'No change' })
   const [portfolioValue, setPortfolioValue] = useState(0)
@@ -23,6 +25,7 @@ const Dashboard = () => {
   const [inputType, setInputType] = useState('grams') // 'grams' or 'inr'
   const [amount, setAmount] = useState('')
   const [modalLoading, setModalLoading] = useState(false)
+  const [cart, setCart] = useState(null)
 
   useEffect(() => {
     fetchDashboardData()
@@ -85,6 +88,22 @@ const Dashboard = () => {
           console.error('Error fetching transactions:', transactionsError)
         }
       }
+
+      // Fetch cart
+      try {
+        const cartResponse = await api.get('/api/cart/me')
+        if (cartResponse.data.cart) {
+          setCart(cartResponse.data.cart)
+        } else {
+          setCart(null)
+        }
+      } catch (cartError) {
+        // Cart might not exist, that's okay
+        if (cartError.response?.status !== 404) {
+          console.error('Error fetching cart:', cartError)
+        }
+        setCart(null)
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -105,22 +124,53 @@ const Dashboard = () => {
 
   const handleConfirm = async () => {
     setModalLoading(true)
-    let endpoint = modalType === 'buy' ? '/api/transactions/buy' : '/api/transactions/sell'
-    let payload = {}
-    if (inputType === 'grams') {
-      payload.grams = parseFloat(amount)
+    
+    if (modalType === 'buy') {
+      // For buy: add to cart
+      let payload = {}
+      if (inputType === 'grams') {
+        payload.grams = parseFloat(amount)
+      } else {
+        // Convert INR to grams
+        const inrAmount = parseFloat(amount)
+        payload.grams = parseFloat((inrAmount / goldPrice).toFixed(4))
+      }
+      
+      try {
+        const response = await api.post('/api/transactions/buy', payload)
+        showSuccess(response.data.message || 'Item added to cart!')
+        fetchDashboardData()
+        handleCloseModal()
+        // Navigate to cart after a short delay
+        setTimeout(() => {
+          navigate('/cart')
+        }, 1000)
+      } catch (error) {
+        showError(error.response?.data?.message || 'Failed to add to cart')
+      } finally {
+        setModalLoading(false)
+      }
     } else {
-      payload.inr = parseFloat(amount)
-    }
-    try {
-              const response = await api.post(endpoint, payload)
-      showSuccess(response.data.message || `${modalType === 'buy' ? 'Buy' : 'Sell'} successful!`)
-      fetchDashboardData()
-      handleCloseModal()
-    } catch (error) {
-      showError(error.response?.data?.message || 'Transaction failed')
-    } finally {
-      setModalLoading(false)
+      // For sell: direct transaction (no cart)
+      let endpoint = '/api/transactions/sell'
+      let payload = {}
+      if (inputType === 'grams') {
+        payload.grams = parseFloat(amount)
+      } else {
+        // Convert INR to grams
+        const inrAmount = parseFloat(amount)
+        payload.grams = parseFloat((inrAmount / goldPrice).toFixed(4))
+      }
+      try {
+        const response = await api.post(endpoint, payload)
+        showSuccess(response.data.message || 'Sell successful!')
+        fetchDashboardData()
+        handleCloseModal()
+      } catch (error) {
+        showError(error.response?.data?.message || 'Transaction failed')
+      } finally {
+        setModalLoading(false)
+      }
     }
   }
 
@@ -137,6 +187,18 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Buy/Sell Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-end mb-6 gap-4">
+          {cart && (
+            <button
+              onClick={() => navigate('/cart')}
+              className="relative bg-bronze-primary text-white px-6 py-3 rounded-lg font-semibold shadow hover:scale-105 transition-transform flex items-center space-x-2"
+            >
+              <FaShoppingCart />
+              <span>View Cart</span>
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">
+                1
+              </span>
+            </button>
+          )}
           <button
             onClick={() => handleOpenModal('buy')}
             className="gold-button text-white px-6 py-3 rounded-lg font-semibold shadow hover:scale-105 transition-transform"

@@ -1,111 +1,79 @@
-// 💰 Gold Transaction Controller (minor formatting only - logic unchanged)
+// 💰 Gold Transaction Controller
 import mongoose from "mongoose";
 import User from "../models/User.mjs";
 import GoldInventory from "../models/GoldInventory.mjs";
 import Transaction from "../models/Transaction.mjs";
 import CustomerHolding from "../models/CustomerHolding.mjs";
+import OrderCart from "../models/OrderCart.mjs";
 import { notifyUser } from "../utils/notifyUser.mjs";
 import { logAudit } from "../utils/logAudit.mjs";
 import { getCurrentPriceFromDB } from "../controllers/goldPriceController.mjs";
 
 export const buyGold = async (req, res, next) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     const customerId = req.user.id;
     const { grams } = req.body;
 
     // ✅ Validate input grams
     if (!grams || grams <= 0) {
-      throw new Error("Invalid gold quantity");
+      return res.status(400).json({
+        success: false,
+        message: "Invalid gold quantity",
+      });
     }
 
     // ✅ Ensure user has verified KYC
-    const user = await User.findById(customerId).session(session);
+    const user = await User.findById(customerId);
     if (!user || !user.kyc?.verified) {
-      throw new Error("KYC not verified. Cannot proceed with purchase.");
+      return res.status(403).json({
+        success: false,
+        message: "KYC not verified. Cannot proceed with purchase.",
+      });
     }
 
     // ✅ Fetch current gold price (per gram) from database
     const pricePerGram = await getCurrentPriceFromDB();
     const totalAmount = parseFloat((pricePerGram * grams).toFixed(2));
 
-    // ✅ Check gold inventory
-    const inventory = await GoldInventory.findOne({ isDeleted: false }).session(session);
+    // ✅ Check gold inventory availability
+    const inventory = await GoldInventory.findOne({ isDeleted: false });
     if (!inventory || inventory.availableGrams < grams) {
-      throw new Error("Insufficient gold inventory");
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient gold inventory",
+      });
     }
 
-    // ✅ Create new transaction record
-    const [transaction] = await Transaction.create(
-      [
-        {
-          customerId,
-          type: "buy",
-          grams,
-          pricePerGram,
-          totalAmount,
-          transactionTime: new Date(),
-        },
-      ],
-      { session }
+    // ✅ Cancel any existing pending carts for this user
+    await OrderCart.updateMany(
+      { customerId, status: 'pending', isDeleted: false },
+      { status: 'cancelled', isDeleted: true }
     );
 
-    // ✅ Update or create customer's gold holding
-    let holding = await CustomerHolding.findOne({
+    // ✅ Create order cart when verified user tries to buy gold
+    const cart = await OrderCart.create({
       customerId,
-      isDeleted: false,
-    }).session(session);
-
-    if (holding) {
-      const totalGrams = holding.totalGrams + grams;
-      const weightedAvg =
-        (holding.totalGrams * holding.averagePricePerGram + totalAmount) / totalGrams;
-
-      holding.totalGrams = parseFloat(totalGrams.toFixed(4));
-      holding.averagePricePerGram = parseFloat(weightedAvg.toFixed(2));
-
-      await holding.save({ session });
-    } else {
-      await CustomerHolding.create(
-        [
-          {
-            customerId,
-            totalGrams: parseFloat(grams.toFixed(4)),
-            averagePricePerGram: pricePerGram,
-            isDeleted: false,
-          },
-        ],
-        { session }
-      );
-    }
-
-    // ✅ Deduct inventory
-    inventory.availableGrams -= grams;
-    await inventory.save({ session });
-
-    // ✅ Notify user & log audit entry
-    await notifyUser(customerId, `You purchased ${grams} grams of gold for ₹${totalAmount}.`);
-    await logAudit({
-      action: "buy_gold",
-      performedBy: customerId,
-      targetModel: "Transaction",
-      targetId: transaction._id,
-      changes: { grams, totalAmount },
+      grams,
+      pricePerGram,
+      totalAmount,
+      status: 'pending',
     });
 
-    await session.commitTransaction();
-    session.endSession();
+    await logAudit({
+      action: "buy_gold_cart_created",
+      performedBy: customerId,
+      targetModel: "OrderCart",
+      targetId: cart._id,
+      changes: { grams, totalAmount, pricePerGram },
+    });
 
     return res.status(201).json({
       success: true,
-      message: "Gold purchase successful",
-      transaction,
+      message: "Order cart created successfully. Please proceed to checkout.",
+      cart,
     });
   } catch (err) {
-    await session.abortTransaction();
-    session.endSession();
+    console.error("Buy gold (create cart) error:", err);
     next(err);
   }
 };

@@ -17,6 +17,7 @@ import inventoryRoutes from './routes/inventory.mjs';
 import userRoutes from './routes/user.mjs';
 import goldRoutes from './routes/gold.mjs';
 import webauthnRoutes from './routes/webauthn.mjs';
+import cartRoutes from './routes/cart.mjs';
 
 
 
@@ -46,6 +47,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/gold', goldRoutes);
 app.use('/api/webauthn', webauthnRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
